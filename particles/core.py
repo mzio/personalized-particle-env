@@ -12,6 +12,7 @@ class EntityState(object):
         self.p_vel = None
 
 
+# So far just a wrapper for the above
 class AgentState(EntityState):
     def __init__(self):
         super(AgentState, self).__init__()
@@ -77,6 +78,10 @@ class Population(object):
         for i in range(self.num_agents):
             mapping = self.get_personalization(seed=i, kind=personalization)
             agent = Agent(name='PersonalAgent-{}'.format(i), mapping=mapping)
+            np.random.seed(i)
+            # Why not
+            agent.color = np.array(
+                [np.random.uniform(), np.random.uniform(), np.random.uniform()])
             self.agents.append(agent)
 
     def get_personalization(self, seed, kind='variance'):
