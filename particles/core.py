@@ -1,7 +1,7 @@
 # Core classes describing state and actions of agents, along with environment physics
 # Inspired by https://github.com/openai/multiagent-particle-envs/blob/master/multiagent/core.py
 
-import numpy as numpy
+import numpy as np
 
 
 # Parent state class for various objects, e.g. agents, landmarks
@@ -25,8 +25,8 @@ class Action(object):
 
 # Properties and state of physical world entity
 class Entity(object):
-    def __init__(self):
-        self.name = ''
+    def __init__(self, name=None):
+        self.name = name
         self.size = 0.050
         self.movable = False  # Can move / be pushed
         self.collide = True   # Allow collisions with others
@@ -50,7 +50,7 @@ class Landmark(Entity):
 
 # Properties of agent entities
 class Agent(Entity):
-    def __init__(self):
+    def __init__(self, mapping=None):
         super(Agent, self).__init__()
         self.movable = True
         self.collide = True
@@ -60,7 +60,46 @@ class Agent(Entity):
         self.action = Action()
         self.action_callback = None  # Scripted agent behavior execution
         # Personalized action function.
-        self.personalize = None
+        self.personalize = lambda x: mapping[x]
+
+
+# Population of agents
+class Population(object):
+    def __init__(self, num_agents, personalization='variance'):
+        super(Population, self).__init__()
+        self.num_agents = num_agents  # Used to set seeds
+        self.agents = []
+
+        # Harcode possible remaps
+        self.remaps = np.array([[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
+                                [0.0, 0.0], [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]])
+
+        for i in range(self.num_agents):
+            mapping = self.get_personalization(seed=i, kind=personalization)
+            agent = Agent(name='PersonalAgent-{}'.format(i), mapping=mapping)
+            self.agents.append(agent)
+
+    def get_personalization(self, seed, kind='variance'):
+        """
+        Maps default 1-hot 4-dim input to a variation   
+        By default mappings are independent of each other.
+        :kind: 'variance' or 'remap'
+        - 'variance': Maps 0 value to uniform between -1 and 1, i.e. [1, 0] -> [1, Unif(-1, 1)]
+        - 'remap': Remaps controls to any untaken [x, y] pairing where x, y in {-1, 0, 1}
+        """
+        np.random.seed(seed)
+        if kind == 'variance':
+            mapping = {1: [+1., np.random.uniform(-1, 1)],  # [+1, 0]
+                       2: [-1., np.random.uniform(-1, 1)],  # [-1, 0]
+                       3: [np.random.uniform(-1, 1), +1.],  # [0, +1]
+                       4: [np.random.uniform(-1, 1), -1.]}  # [0, -1]
+        elif kind == 'remap':
+            ix_n = np.random.choice(
+                self.remaps.shape[0], size=4, replace=False)
+            mapping = {}
+            for k, v in enumerate(self.remaps[ix_n]):
+                mapping[k + 1] = v
+        return mapping
 
 
 # (Multi-)agent world
