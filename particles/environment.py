@@ -1,9 +1,12 @@
+# Code for personalized agent environments. Borrows heavily from
+# https://github.com/openai/multiagent-particle-envs/blob/6ed7cac026f0eb345d4c20232bafa1dc951c68e7/multiagent/environment.py
+
 import gym
 from gym import spaces
 from gym.envs.registration import EnvSpec
 import numpy as np
 
-from multiagent.multi_discrete import MultiDiscrete
+from particles.multi_discrete import MultiDiscrete
 
 
 class PersonalAgentEnv(gym.Env):
@@ -235,9 +238,9 @@ class PersonalAgentEnv(gym.Env):
         return dx
 
 
-# vectorized wrapper for a batch of multi-agent environments
+# vectorized wrapper for a batch of personal-agent environments
 # assumes all environments have the same observation and action space
-class BatchMultiAgentEnv(gym.Env):
+class BatchPersonalAgentEnv(gym.Env):
     metadata = {
         'runtime.vectorized': True,
         'render.modes': ['human', 'rgb_array']
