@@ -66,8 +66,6 @@ class Scenario(BaseScenario):
             landmark.state.p_pos = start_pos
             landmark.state.p_vel = np.zeros(world.dim_p)
             print('Landmark Pos: {}'.format(landmark.state.p_pos))
-            print(landmark.state.p_pos)
-            print()
 
     def reward(self, agent, world):
         # Euclidean distance reward
