@@ -1,11 +1,11 @@
 # 2D rendering framework, originally from https://github.com/openai/multiagent-particle-envs/blob/master/multiagent/rendering.py
-
+from __future__ import division
 import numpy as np
 import math
 from gym import error
 from gym.utils import reraise
 
-from __future__ import division
+
 import os
 import six
 import sys
@@ -117,7 +117,7 @@ class Viewer(object):
         return arr
 
     # Convenience
-    def draw_circle(self, radius=10, res=30, filled=True, **attrs):
+    def draw_circle(self, radius=1, res=10, filled=True, **attrs):
         geom = make_circle(radius=radius, res=res, filled=filled)
         _add_attrs(geom, attrs)
         self.add_onetime(geom)

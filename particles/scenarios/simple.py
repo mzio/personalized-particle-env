@@ -11,8 +11,8 @@ class Scenario(BaseScenario):
         self.population = Population(10, personalization='variance')
         self.num_agents = 1  # Number of agents at a time
         self.seed = 42  # Reproducibility
-        self.random_start = False
-        self.random_landmarks = False
+        self.random_start = True
+        self.random_landmarks = True
 
     def make_world(self):
         world = World()
@@ -58,12 +58,16 @@ class Scenario(BaseScenario):
                          if self.random_start else [-0.75, -0.75])
             agent.state.p_pos = start_pos
             agent.state.p_vel = np.zeros(world.dim_p)
+            print('Agent Pos: {}'.format(agent.state.p_pos))
 
         for landmark in world.landmarks:
             start_pos = (np.random.uniform(-1, 1, world.dim_p)
                          if self.random_landmarks else [+0.25, +0.25])
             landmark.state.p_pos = start_pos
             landmark.state.p_vel = np.zeros(world.dim_p)
+            print('Landmark Pos: {}'.format(landmark.state.p_pos))
+            print(landmark.state.p_pos)
+            print()
 
     def reward(self, agent, world):
         # Euclidean distance reward
