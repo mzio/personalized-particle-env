@@ -95,8 +95,8 @@ class PersonalAgentEnv(gym.Env):
 
         # all agents get total reward in cooperative case
         reward = np.sum(reward_n)
-        if self.shared_reward:
-            reward_n = [reward] * self.n
+        # if self.shared_reward:
+        #     reward_n = [reward] * self.n
 
         return obs_n, reward_n, done_n, info_n
 
@@ -147,13 +147,18 @@ class PersonalAgentEnv(gym.Env):
                 agent.action.m = agent.personalize(action[0])
             else:
                 d = np.argmax(action[0])
-                agent.action.m = agent.personalize(d)
+                try:
+                    agent.action.m = agent.personalize(d)
+                    # print('PERSONAL ACTION: {}'.format(agent.action.m))
+                except:
+                    raise NotImplementedError
             assert len(agent.action.m) == self.world.dim_p
 
-            sensitivity = 5.0
+            sensitivity = 0.1
             if agent.accel is not None:
                 sensitivity = agent.accel
-            agent.action.m *= sensitivity
+            agent.action.m = [m * sensitivity for m in agent.action.m]
+            # agent.action.m *= sensitivity
             action = action[1:]
         assert len(action) == 0  # Make sure to use all elements of action
 
@@ -169,14 +174,14 @@ class PersonalAgentEnv(gym.Env):
         for i in range(len(self.viewers)):
             # Create viewers if necessary
             if self.viewers[i] is None:
-                from multiagent import rendering
-                self.viewers[i] = rednering.Viewer(700, 700)
+                from particles import rendering
+                self.viewers[i] = rendering.Viewer(700, 700)
 
     # Create rendering geometry
         if self.render_geoms is None:
             # import rendering only if we need it (and don't import for headless machines)
-            #from gym.envs.classic_control import rendering
-            from multiagent import rendering
+            # from gym.envs.classic_control import rendering
+            from particles import rendering
             self.render_geoms = []
             self.render_geoms_xform = []
             for entity in self.world.entities:
@@ -198,7 +203,7 @@ class PersonalAgentEnv(gym.Env):
 
         results = []
         for i in range(len(self.viewers)):
-            from multiagent import rendering
+            from particles import rendering
             # update bounds to center around agent
             cam_range = 1
             if self.shared_viewer:

@@ -28,7 +28,7 @@ class Action(object):
 class Entity(object):
     def __init__(self, name=None):
         self.name = name
-        self.size = 0.050
+        self.size = 0.025
         self.movable = False  # Can move / be pushed
         self.collide = True   # Allow collisions with others
         self.density = 25.0   # Affects mass / movement
@@ -51,7 +51,7 @@ class Landmark(Entity):
 
 # Properties of agent entities
 class Agent(Entity):
-    def __init__(self, mapping=None):
+    def __init__(self, name=None, mapping=None):
         super(Agent, self).__init__()
         self.movable = True
         self.collide = True
@@ -60,6 +60,7 @@ class Agent(Entity):
         self.state = AgentState()
         self.action = Action()
         self.action_callback = None  # Scripted agent behavior execution
+        self.name = name
         # Personalized action function.
         self.personalize = lambda x: mapping[x]
 
@@ -71,7 +72,7 @@ class Population(object):
         self.num_agents = num_agents  # Used to set seeds
         self.agents = []
 
-        # Harcode possible remaps
+        # Hard code possible remaps
         self.remaps = np.array([[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
                                 [0.0, 0.0], [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]])
 
@@ -94,16 +95,17 @@ class Population(object):
         """
         np.random.seed(seed)
         if kind == 'variance':
-            mapping = {1: [+1., np.random.uniform(-1, 1)],  # [+1, 0]
-                       2: [-1., np.random.uniform(-1, 1)],  # [-1, 0]
-                       3: [np.random.uniform(-1, 1), +1.],  # [0, +1]
-                       4: [np.random.uniform(-1, 1), -1.]}  # [0, -1]
+            mapping = {1: [-1., np.random.uniform(-1, 1)],  # [-1, 0]
+                       2: [+1., np.random.uniform(-1, 1)],  # [+1, 0]
+                       3: [np.random.uniform(-1, 1), -1.],  # [0, -1]
+                       4: [np.random.uniform(-1, 1), +1.]}  # [0, +1]
         elif kind == 'remap':
             ix_n = np.random.choice(
                 self.remaps.shape[0], size=4, replace=False)
             mapping = {}
             for k, v in enumerate(self.remaps[ix_n]):
                 mapping[k + 1] = v
+        mapping[0] = [0., 0.]
         return mapping
 
 
@@ -112,7 +114,9 @@ class World(object):
     def __init__(self):
         self.agents = []
         self.landmarks = []
-        self.dim_m = 0       # Position dimensionality
+        # self.dim_m = 0       # Position dimensionality
+        # position dimensionality
+        self.dim_p = 2
         self.dim_color = 3   # Color dimensionality
         self.dt = 0.1        # Simulation timestep
         self.damping = 0.25  # Physical damping
@@ -123,7 +127,7 @@ class World(object):
     # Return all entities in the world
     @property
     def entities(self):
-        return self.agents + self.landmarks
+        return np.concatenate((self.agents, self.landmarks))
 
     # Return all agents controllable by external policies, disjoint of scripted agents
     @property
@@ -141,15 +145,21 @@ class World(object):
             agent.action = agent.action_callback(agent, self)
         # Gather forces applied
         p_force = [None] * len(self.entities)
-        p_roce = self.apply_action_force(p)
+        p_force = self.apply_action_force(p_force)
+        p_force = self.apply_environment_force(p_force)
+        # integrate physical state
+        self.integrate_state(p_force)
+        # # update agent state
+        # for agent in self.agents:
+        #     self.update_agent_state(agent)
 
     # Gather agent action forces
     def apply_action_force(self, p_force):
-        for i, agent in enumerate(self, agents):
+        for i, agent in enumerate(self.agents):
             if agent.movable:
                 noise = np.random.randn(*agent.action.m.shape) * \
                     agent.m_noise if agent.m_noise else 0.
-                p_force[i] = agent.personalize(agent.action.m) + noise
+                p_force[i] = np.array(agent.action.m) + noise
         return p_force
 
     # Gather physical forces acting on entities
@@ -185,14 +195,14 @@ class World(object):
                                                                       np.square(entity.state.p_vel[1])) * entity.max_speed
             entity.state.p_pos += entity.state.p_vel * self.dt
 
-    def update_agent_state(self, agent):
-        # Set communication state (directly for now)
-        if agent.silent:
-            agent.state.c = np.zeros(self.dim_c)
-        else:
-            noise = np.random.randn(*agent.action.c.shape) * \
-                agent.c_noise if agent.c_noise else 0.0
-            agent.state.c = agent.action.c + noise
+    # def update_agent_state(self, agent):
+    #     # Set communication state (directly for now)
+    #     if agent.silent:
+    #         agent.state.c = np.zeros(self.dim_c)
+    #     else:
+    #         noise = np.random.randn(*agent.action.c.shape) * \
+    #             agent.c_noise if agent.c_noise else 0.0
+    #         agent.state.c = agent.action.c + noise
 
     # Get collision forces for any contact between two entities
     def get_collision_force(self, entity_a, entity_b):
