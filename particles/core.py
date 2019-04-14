@@ -74,24 +74,25 @@ class Population(object):
 
         # Hard code possible remaps
         self.remaps = np.array([[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
-                                [0.0, 0.0], [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]])
-
+                                [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]])
+        self.colors = [[1., 0, 0], [1, 1, 0], [
+            0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1]]
         for i in range(self.num_agents):
             mapping = self.get_personalization(seed=i, kind=personalization)
             agent = Agent(name='PersonalAgent-{}'.format(i), mapping=mapping)
             np.random.seed(i)
             # Why not
-            agent.color = np.array(
-                [np.random.uniform(), np.random.uniform(), np.random.uniform()])
+            agent.color = np.array(self.colors[i % len(self.colors)])
             self.agents.append(agent)
 
     def get_personalization(self, seed, kind='variance'):
         """
         Maps default 1-hot 4-dim input to a variation   
         By default mappings are independent of each other.
-        :kind: 'variance' or 'remap'
+        :kind: 'variance' or 'remap' or 'none'
         - 'variance': Maps 0 value to uniform between -1 and 1, i.e. [1, 0] -> [1, Unif(-1, 1)]
         - 'remap': Remaps controls to any untaken [x, y] pairing where x, y in {-1, 0, 1}
+        - 'none': Default controls
         """
         np.random.seed(seed)
         if kind == 'variance':
@@ -105,6 +106,11 @@ class Population(object):
             mapping = {}
             for k, v in enumerate(self.remaps[ix_n]):
                 mapping[k + 1] = v
+        elif kind == 'none':
+            mapping = {1: [-1., 0.], 2: [1., 0.], 3: [0., -1.], 4: [0., 1.]}
+        else:
+            print('Invalid kind of personalization specified.')
+            raise NotImplementedError
         mapping[0] = [0., 0.]
         return mapping
 
@@ -191,8 +197,8 @@ class World(object):
                 speed = np.sqrt(
                     np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))
                 if speed > entity.max_speed:
-                    entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
-                                                                      np.square(entity.state.p_vel[1])) * entity.max_speed
+                    entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0])
+                                                                      + np.square(entity.state.p_vel[1])) * entity.max_speed
             entity.state.p_pos += entity.state.p_vel * self.dt
 
     # def update_agent_state(self, agent):
@@ -217,7 +223,7 @@ class World(object):
         dist_min = entity_a.size + entity_b.size
         # Softmax penetration
         k = self.contact_margin
-        penetration = np.logaddexp(0, -(dist - dist_min)/k)*k
+        penetration = np.logaddexp(0, -(dist - dist_min) / k) * k
         force = self.contact_force * delta_pos / dist * penetration
         force_a = +force if entity_a.movable else None
         force_b = -force if entity_b.movable else None
