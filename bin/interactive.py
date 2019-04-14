@@ -63,4 +63,5 @@ if __name__ == '__main__':
             x += 1
             if done_n[0] is True:
                 env.reset()
+                break
         env.reset()
