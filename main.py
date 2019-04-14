@@ -1,10 +1,7 @@
-import os
-import sys
-import inspect
-import argparse
-
 import gym
+import csv
 import numpy as np
+import argparse
 
 import torch
 import torch.optim as optim
@@ -34,8 +31,10 @@ parser.add_argument('-r', '--render', action='store_true',
                     help='Render gridworld window')
 parser.add_argument('--seed', default=42, type=int,
                     help='Randomization seed')
-parser.add_argument('--log_interval', default=10, type=int,
+parser.add_argument('--log_interval', default=1, type=int,
                     help='Logging rate')
+parser.add_argument('--save_results', default='./results/results.csv')
+parser.add_argument('--save_model', default='./trained_models/model.pt')
 args = parser.parse_args()
 
 scenario = scenarios.load(args.scenario).Scenario(
@@ -80,6 +79,11 @@ def finish_episode(policy):
 
 obs_n = env.reset()
 running_reward = 10
+
+rewards = [['Episode', 'Reward']]
+
+total_timesteps = 0
+
 for n in range(args.num_episodes):
     t = 0
     env.reset()
@@ -102,16 +106,26 @@ for n in range(args.num_episodes):
                       env._get_reward(agent))
         policy.rewards.append(reward_n[i])
         ep_reward += reward_n[i]
+        t += 1
+        total_timesteps += 1
         if done_n[i] is True:
             break
-        t += 1
 
     running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
     finish_episode(policies[0])
     if n % args.log_interval == 0:
         print('Episode {}\tLast reward: {:.3f}\tAverage reward: {:.2f}'.format(
             n, ep_reward, running_reward))
-    # if running_reward > env.spec.reward_threshold:
-    #     print("Solved! Running reward is now {} and "
-    #           "the last episode runs to {} time steps!".format(running_reward, t))
-    #     break
+        rewards.append([total_timesteps, ep_reward])
+
+# Save model and results
+torch.save(policies[0].state_dict(), args.save_model)
+
+with open(args.save_results, 'w') as f:
+    writer = csv.writer(f)
+    writer.writerows(rewards)
+
+# if running_reward > env.spec.reward_threshold:
+#     print("Solved! Running reward is now {} and "
+#           "the last episode runs to {} time steps!".format(running_reward, t))
+#     break

@@ -154,7 +154,7 @@ class PersonalAgentEnv(gym.Env):
                     raise NotImplementedError
             assert len(agent.action.m) == self.world.dim_p
 
-            sensitivity = 0.1
+            sensitivity = 0.25
             if agent.accel is not None:
                 sensitivity = agent.accel
             agent.action.m = [m * sensitivity for m in agent.action.m]

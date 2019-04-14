@@ -28,7 +28,7 @@ class Action(object):
 class Entity(object):
     def __init__(self, name=None):
         self.name = name
-        self.size = 0.025
+        self.size = 0.015
         self.movable = False  # Can move / be pushed
         self.collide = True   # Allow collisions with others
         self.density = 25.0   # Affects mass / movement

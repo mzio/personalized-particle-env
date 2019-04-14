@@ -57,8 +57,8 @@ class Scenario(BaseScenario):
         # Logging rewards and updating for next round
         if self.random_landmarks or self.random_start:
             self.pos_seeds.append(self.pos_seeds[-1] + 1)
-        print('Agent reward(s): {}'.format(
-            [self.reward(a, world) for a in world.agents]))
+        # print('Agent reward(s): {}'.format(
+        #     [self.reward(a, world) for a in world.agents]))
         # print(self.pos_seeds[-1])
 
         world.timesteps = 0
@@ -71,7 +71,7 @@ class Scenario(BaseScenario):
                          if self.random_start else np.array([0., 0.]))
             agent.state.p_pos = start_pos
             agent.state.p_vel = np.zeros(world.dim_p)
-            print('Agent Pos: {}'.format(agent.state.p_pos))
+            # print('Agent Pos: {}'.format(agent.state.p_pos))
 
         if self.random_landmarks:
             np.random.seed(self.pos_seeds[-1])
@@ -80,7 +80,7 @@ class Scenario(BaseScenario):
                          if self.random_landmarks else np.array([+0.75, +0.75]))
             landmark.state.p_pos = start_pos
             landmark.state.p_vel = np.zeros(world.dim_p)
-            print('Landmark Pos: {}'.format(landmark.state.p_pos))
+            # print('Landmark Pos: {}'.format(landmark.state.p_pos))
 
     def _get_distance(self, agent, world):
         # Calculate euclidean distance
@@ -91,7 +91,6 @@ class Scenario(BaseScenario):
         # Euclidean distance reward
         dist2 = self._get_distance(agent, world)
         if dist2 < 0.001:  # Faster agents are rewarded more
-            print((world.episode_len - world.timesteps) / world.episode_len)
             return -dist2 + (world.episode_len - world.timesteps) / world.episode_len
         return -dist2
 
