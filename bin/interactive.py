@@ -18,16 +18,21 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('-s', '--scenario', default='simple.py',
                         help='Path of the scenario Python script.')
-    parser.add_argument('-d', '--debug', help='Print for debugging.')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Print for debugging.')
+    parser.add_argument('-p', '--personalization',
+                        help='Personalizaiton setup: "variance", "remap", "none" supported')
     args = parser.parse_args()
 
     # load scenario from script
-    scenario = scenarios.load(args.scenario).Scenario()
+    scenario = scenarios.load(args.scenario).Scenario(
+        kind=args.personalization)
     # create world
     world = scenario.make_world()
     # create multiagent environment
     env = PersonalAgentEnv(world, scenario.reset_world, scenario.reward,
-                           scenario.observation, info_callback=None, shared_viewer=True)
+                           scenario.observation, info_callback=None,
+                           done_callback=scenario.done, shared_viewer=True)
     # render call to create viewer window (necessary only for interactive policies)
     env.render()
     # create interactive policies for each agent
@@ -36,7 +41,7 @@ if __name__ == '__main__':
     obs_n = env.reset()
     for n in range(100):
         x = 0
-        while x < 200:
+        while x < 2000:
             # query for action from each agent's policy
             act_n = []
             for i, policy in enumerate(policies):
@@ -52,4 +57,7 @@ if __name__ == '__main__':
                     print(agent.name + " reward: %0.3f" %
                           env._get_reward(agent))
             x += 1
+            print(done_n)
+            if done_n[0] is True:
+                env.reset()
         env.reset()
