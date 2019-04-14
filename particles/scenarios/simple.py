@@ -6,9 +6,11 @@ from particles.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def __init__(self, kind, seed):
+    def __init__(self, kind, seed, saved_agents=None, file_to_save_agents=None):
         # Intialize by creating population of potnetial agents
-        self.population = Population(10, personalization=kind, seed=seed)
+        self.population = Population(
+            num_agents=1, personalization=kind, seed=seed,
+            load_agents=saved_agents, save_agents=file_to_save_agents)
         self.num_agents = 1  # Number of agents at a time
         self.seed = seed  # Reproducibility
         self.random_start = False

@@ -2,6 +2,7 @@
 # Inspired by https://github.com/openai/multiagent-particle-envs/blob/master/multiagent/core.py
 
 import numpy as np
+import json
 
 
 # Parent state class for various objects, e.g. agents, landmarks
@@ -67,23 +68,47 @@ class Agent(Entity):
 
 # Population of agents
 class Population(object):
-    def __init__(self, num_agents, personalization='variance', seed=None):
+    def __init__(self, num_agents, personalization='variance', seed=None,
+                 load_agents=None, save_agents='agents.json'):
+        """
+        Defines a population of agents, which may have personalized reactions to the input actions
+        :load_agents: if pre-specified, just load the agents from a .json file  
+        :save_agents: specifies where to save configs to
+        """
         super(Population, self).__init__()
         self.num_agents = num_agents  # Used to set seeds
         self.agents = []
 
-        # Hard code possible remaps
-        self.remaps = np.array([[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
-                                [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]])
-        self.colors = [[1., 0, 0], [1, 1, 0], [
-            0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1]]
-        for i in range(self.num_agents):
-            mapping = self.get_personalization(seed=i, kind=personalization)
-            agent = Agent(name='PersonalAgent-{}'.format(i), mapping=mapping)
-            np.random.seed(i)
-            # Why not
-            agent.color = np.array(self.colors[i % len(self.colors)])
-            self.agents.append(agent)
+        if load_agents:
+            # load_agents is a json that holds agent ids, their color, and mapping
+            with open(load_agents, 'r') as f:
+                loaded_agents = json.load(f)
+            assert len(loaded_agents) == len(self.num_agents)
+            for a in loaded_agents:
+                agent = Agent(name=a['name'], mapping=a['mapping'])
+                agent.color = a['color']
+                self.agents.append(agent)
+        else:
+            saved_agent_configs = []
+            # Hard code possible remaps
+            self.remaps = np.array([[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
+                                    [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]])
+            self.colors = [[1., 0, 0], [1, 1, 0], [
+                0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1]]
+            for i in range(self.num_agents):
+                mapping = self.get_personalization(
+                    seed=i, kind=personalization)
+                name = 'PersonalAgent-{}'.format(i)
+                agent = Agent(name=name, mapping=mapping)
+                np.random.seed(i)
+                # Why not
+                agent.color = np.array(self.colors[i % len(self.colors)])
+                self.agents.append(agent)
+                saved_agent_configs.append(
+                    {'name': name, 'mapping': mapping, 'color': agent.color})
+            if save_agents:
+                with open(save_agents, 'w') as f:
+                    json.dump(saved_agent_configs, f)
 
     def get_personalization(self, seed, kind='variance'):
         """
