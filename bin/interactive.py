@@ -22,13 +22,16 @@ if __name__ == '__main__':
                         help='Print for debugging.')
     parser.add_argument('-p', '--personalization',
                         help='Personalizaiton setup: "variance", "remap", "none" supported')
+    parser.add_argument('-e', '--episode_len', default=1000,
+                        type=int, help='Number of timesteps per episode')
     args = parser.parse_args()
 
     # load scenario from script
     scenario = scenarios.load(args.scenario).Scenario(
-        kind=args.personalization)
+        kind=args.personalization, seed=42)
     # create world
     world = scenario.make_world()
+    world.episode_len = args.episode_len
     # create multiagent environment
     env = PersonalAgentEnv(world, scenario.reset_world, scenario.reward,
                            scenario.observation, info_callback=None,
@@ -41,14 +44,15 @@ if __name__ == '__main__':
     obs_n = env.reset()
     for n in range(100):
         x = 0
-        while x < 2000:
+        while x < args.episode_len:
             # query for action from each agent's policy
             act_n = []
             for i, policy in enumerate(policies):
                 act_n.append(policy.action(obs_n[i]))
             # step environment
             obs_n, reward_n, done_n, _ = env.step(act_n)
-            print(obs_n)
+            if args.debug:
+                print(obs_n)
             # render all agent views
             env.render()
             # display rewards
@@ -57,7 +61,6 @@ if __name__ == '__main__':
                     print(agent.name + " reward: %0.3f" %
                           env._get_reward(agent))
             x += 1
-            print(done_n)
             if done_n[0] is True:
                 env.reset()
         env.reset()
