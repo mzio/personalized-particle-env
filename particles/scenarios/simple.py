@@ -17,10 +17,10 @@ class Scenario(BaseScenario):
     def make_world(self):
         world = World()
         # Add agents
-        world.agents = self._sample_agents()
+        world.agents = self._sample_agents(self.seed)
         for i, agent in enumerate(world.agents):
             agent.collide = True
-            agent.state.p_pos = [-0.75, -0.75]
+            agent.state.p_pos = [0., 0.]
             agent.state.p_vel = np.zeros(world.dim_p)
         # Add landmarks
         world.landmarks = [Landmark() for i in range(1)]
@@ -53,19 +53,22 @@ class Scenario(BaseScenario):
         world.landmarks[0].color = np.array([0.75, 0.75, 0.75])
 
         # Set random initial states
+        np.random.seed(self.seed)
         for agent in world.agents:
             start_pos = (np.random.uniform(-1, 1, world.dim_p)
-                         if self.random_start else np.array([-0.75, -0.75]))
+                         if self.random_start else np.array([0., 0.]))
             agent.state.p_pos = start_pos
             agent.state.p_vel = np.zeros(world.dim_p)
             print('Agent Pos: {}'.format(agent.state.p_pos))
 
         for landmark in world.landmarks:
             start_pos = (np.random.uniform(-1, 1, world.dim_p)
-                         if self.random_landmarks else np.array([+0.25, +0.25]))
+                         if self.random_landmarks else np.array([+0.75, +0.75]))
             landmark.state.p_pos = start_pos
             landmark.state.p_vel = np.zeros(world.dim_p)
             print('Landmark Pos: {}'.format(landmark.state.p_pos))
+
+        world.timesteps = 0
 
     def _get_distance(self, agent, world):
         # Calculate euclidean distance
@@ -74,7 +77,10 @@ class Scenario(BaseScenario):
 
     def reward(self, agent, world):
         # Euclidean distance reward
-        return -self._get_distance(agent, world)
+        dist2 = self._get_distance(agent, world)
+        if dist2 < 0.001:  # Faster agents are rewarded more
+            return -dist2 + (world.episode_len - world.timesteps) / world.episode_len
+        return -dist2
 
     def observation(self, agent, world):
         # Get positions of all entities in this agent's reference frame
