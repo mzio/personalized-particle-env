@@ -59,7 +59,7 @@ class Scenario(BaseScenario):
             self.pos_seeds.append(self.pos_seeds[-1] + 1)
         print('Agent reward(s): {}'.format(
             [self.reward(a, world) for a in world.agents]))
-        print(self.pos_seeds[-1])
+        # print(self.pos_seeds[-1])
 
         world.timesteps = 0
 
