@@ -125,6 +125,8 @@ with open(args.save_results, 'w') as f:
     writer = csv.writer(f)
     writer.writerows(rewards)
 
+# python main.py --scenario simple.py --p 'none' --seed {} --save_results './results/results_{}.csv' --save_model './trained_models/model_{}.pt'
+
 # if running_reward > env.spec.reward_threshold:
 #     print("Solved! Running reward is now {} and "
 #           "the last episode runs to {} time steps!".format(running_reward, t))
