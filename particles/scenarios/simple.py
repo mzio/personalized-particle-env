@@ -6,11 +6,11 @@ from particles.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def __init__(self, kind, seed, saved_agents=None, file_to_save_agents=None):
+    def __init__(self, kind, seed, num_agents=None, load_agents=None, save_agents=None):
         # Intialize by creating population of potnetial agents
         self.population = Population(
-            num_agents=1, personalization=kind, seed=seed,
-            load_agents=saved_agents, save_agents=file_to_save_agents)
+            num_agents=num_agents, personalization=kind, seed=seed,
+            load_agents=load_agents, save_agents=save_agents)
         self.num_agents = 1  # Number of agents at a time
         self.seed = seed  # Reproducibility
         self.random_start = False
@@ -40,8 +40,6 @@ class Scenario(BaseScenario):
 
     def _sample_agents(self):
         """Sample agents to be present in current world episode"""
-        if self.seed:
-            np.random.seed(self.seed)
         try:
             selected_agents = np.random.choice(
                 self.population.agents, size=self.num_agents, replace=False)

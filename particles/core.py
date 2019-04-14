@@ -68,7 +68,7 @@ class Agent(Entity):
 
 # Population of agents
 class Population(object):
-    def __init__(self, num_agents, personalization='variance', seed=None,
+    def __init__(self, num_agents=None, personalization='variance', seed=None,
                  load_agents=None, save_agents='agents.json'):
         """
         Defines a population of agents, which may have personalized reactions to the input actions
@@ -82,17 +82,17 @@ class Population(object):
         if load_agents:
             # load_agents is a json that holds agent ids, their color, and mapping
             with open(load_agents, 'r') as f:
-                loaded_agents = json.load(f)
-            assert len(loaded_agents) == len(self.num_agents)
+                loaded_agents = json.load(f, object_hook=self._convert_keys)
             for a in loaded_agents:
                 agent = Agent(name=a['name'], mapping=a['mapping'])
                 agent.color = a['color']
                 self.agents.append(agent)
         else:
+            assert self.num_agents is not None
             saved_agent_configs = []
             # Hard code possible remaps
-            self.remaps = np.array([[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
-                                    [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]])
+            self.remaps = [[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
+                           [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]]
             self.colors = [[1., 0, 0], [1, 1, 0], [
                 0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1]]
             for i in range(self.num_agents):
@@ -102,12 +102,13 @@ class Population(object):
                 agent = Agent(name=name, mapping=mapping)
                 np.random.seed(i)
                 # Why not
-                agent.color = np.array(self.colors[i % len(self.colors)])
+                agent.color = self.colors[i % len(self.colors)]
                 self.agents.append(agent)
                 saved_agent_configs.append(
                     {'name': name, 'mapping': mapping, 'color': agent.color})
             if save_agents:
                 with open(save_agents, 'w') as f:
+                    # print(json.dumps(saved_agent_configs))
                     json.dump(saved_agent_configs, f)
 
     def get_personalization(self, seed, kind='variance'):
@@ -138,6 +139,15 @@ class Population(object):
             raise NotImplementedError
         mapping[0] = [0., 0.]
         return mapping
+
+    def _convert_keys(self, x):
+        """Convert string keys to integers when loading json agents file"""
+        if isinstance(x, dict):
+            try:
+                return {int(k): v for k, v in x.items()}
+            except:
+                return x
+        return x
 
 
 # (Multi-)agent world

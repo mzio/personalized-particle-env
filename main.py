@@ -15,9 +15,10 @@ from models.policy import Reinforce
 parser = argparse.ArgumentParser(description=None)
 parser.add_argument('-s', '--scenario', default='simple.py',
                     help='Path of the scenario Python script')
-parser.add_argument('--load_config', default='')
+parser.add_argument('--num_agents', default=None, type=int)
+parser.add_argument('--load_agents', default='')
 parser.add_argument(
-    '--save_config', default='./particles/configs/config-0.json')
+    '--save_agents', default='agents-0.json')
 parser.add_argument('--lr', default=1e-2, type=int,
                     help='Learning rate')
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
@@ -41,12 +42,14 @@ parser.add_argument('--save_model', default='./trained_models/model.pt')
 args = parser.parse_args()
 
 load_agents = None
-if args.load_config != '':
-    load_agents = args.load_config
+if args.load_agents != '':
+    load_agents = './particles/configs/' + args.load_agents
+
+save_agents = './particles/configs/' + args.save_agents
 
 scenario = scenarios.load(args.scenario).Scenario(
-    kind=args.personalization, seed=args.seed,
-    load_agents=load_agents, save_agents=args.save_config)
+    kind=args.personalization, num_agents=args.num_agents, seed=args.seed,
+    load_agents=load_agents, save_agents=save_agents)
 # create world
 world = scenario.make_world()
 world.episode_len = args.episode_len
