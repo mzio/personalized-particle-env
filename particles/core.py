@@ -67,7 +67,7 @@ class Agent(Entity):
 
 # Population of agents
 class Population(object):
-    def __init__(self, num_agents, personalization='variance'):
+    def __init__(self, num_agents, personalization='variance', seed=None):
         super(Population, self).__init__()
         self.num_agents = num_agents  # Used to set seeds
         self.agents = []
@@ -129,6 +129,8 @@ class World(object):
         # Contact response parameters
         self.contact_force = 1e+2
         self.contact_margin = 1e-3
+        self.timesteps = 0
+        self.episode_len = None
 
     # Return all entities in the world
     @property
@@ -155,6 +157,7 @@ class World(object):
         p_force = self.apply_environment_force(p_force)
         # integrate physical state
         self.integrate_state(p_force)
+        self.timesteps += 1
         # # update agent state
         # for agent in self.agents:
         #     self.update_agent_state(agent)
@@ -197,8 +200,8 @@ class World(object):
                 speed = np.sqrt(
                     np.square(entity.state.p_vel[0]) + np.square(entity.state.p_vel[1]))
                 if speed > entity.max_speed:
-                    entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0])
-                                                                      + np.square(entity.state.p_vel[1])) * entity.max_speed
+                    entity.state.p_vel = entity.state.p_vel / np.sqrt(np.square(entity.state.p_vel[0]) +
+                                                                      np.square(entity.state.p_vel[1])) * entity.max_speed
             entity.state.p_pos += entity.state.p_vel * self.dt
 
     # def update_agent_state(self, agent):

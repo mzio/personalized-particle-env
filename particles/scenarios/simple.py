@@ -6,18 +6,20 @@ from particles.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def __init__(self, kind):
+    def __init__(self, kind, seed):
         # Intialize by creating population of potnetial agents
-        self.population = Population(10, personalization=kind)
+        self.population = Population(10, personalization=kind, seed=seed)
         self.num_agents = 1  # Number of agents at a time
-        self.seed = 42  # Reproducibility
+        self.seed = seed  # Reproducibility
         self.random_start = False
         self.random_landmarks = False
+        # Deterministic seeds over time for random reloading
+        self.pos_seeds = [seed]
 
     def make_world(self):
         world = World()
         # Add agents
-        world.agents = self._sample_agents(self.seed)
+        world.agents = self._sample_agents()
         for i, agent in enumerate(world.agents):
             agent.collide = True
             agent.state.p_pos = [0., 0.]
@@ -34,10 +36,10 @@ class Scenario(BaseScenario):
         self.reset_world(world)
         return world
 
-    def _sample_agents(self, seed=None):
+    def _sample_agents(self):
         """Sample agents to be present in current world episode"""
-        if seed:
-            np.random.seed(seed)
+        if self.seed:
+            np.random.seed(self.seed)
         try:
             selected_agents = np.random.choice(
                 self.population.agents, size=self.num_agents, replace=False)
@@ -52,8 +54,18 @@ class Scenario(BaseScenario):
             landmark.color = np.array([0.75, 0.75, 0.75])
         world.landmarks[0].color = np.array([0.75, 0.75, 0.75])
 
+        # Logging rewards and updating for next round
+        if self.random_landmarks or self.random_start:
+            self.pos_seeds.append(self.pos_seeds[-1] + 1)
+        print('Agent reward(s): {}'.format(
+            [self.reward(a, world) for a in world.agents]))
+        print(self.pos_seeds[-1])
+
+        world.timesteps = 0
+
         # Set random initial states
-        np.random.seed(self.seed)
+        if self.random_start:
+            np.random.seed(self.pos_seeds[-1])
         for agent in world.agents:
             start_pos = (np.random.uniform(-1, 1, world.dim_p)
                          if self.random_start else np.array([0., 0.]))
@@ -61,14 +73,14 @@ class Scenario(BaseScenario):
             agent.state.p_vel = np.zeros(world.dim_p)
             print('Agent Pos: {}'.format(agent.state.p_pos))
 
+        if self.random_landmarks:
+            np.random.seed(self.pos_seeds[-1])
         for landmark in world.landmarks:
             start_pos = (np.random.uniform(-1, 1, world.dim_p)
                          if self.random_landmarks else np.array([+0.75, +0.75]))
             landmark.state.p_pos = start_pos
             landmark.state.p_vel = np.zeros(world.dim_p)
             print('Landmark Pos: {}'.format(landmark.state.p_pos))
-
-        world.timesteps = 0
 
     def _get_distance(self, agent, world):
         # Calculate euclidean distance
@@ -79,6 +91,7 @@ class Scenario(BaseScenario):
         # Euclidean distance reward
         dist2 = self._get_distance(agent, world)
         if dist2 < 0.001:  # Faster agents are rewarded more
+            print((world.episode_len - world.timesteps) / world.episode_len)
             return -dist2 + (world.episode_len - world.timesteps) / world.episode_len
         return -dist2
 
