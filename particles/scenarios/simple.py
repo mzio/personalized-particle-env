@@ -94,13 +94,14 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Euclidean distance reward
         dist2 = self._get_distance(agent, world)
+        # print((world.episode_len - world.timesteps) / world.episode_len)
         if dist2 < 0.001:  # Faster agents are rewarded more
             return -dist2 + (world.episode_len - world.timesteps) / world.episode_len
         return -dist2
 
     def observation(self, agent, world):
         # Get positions of all entities in this agent's reference frame
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos])
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos])
         entity_pos = []
         for entity in world.landmarks:
             entity_pos.append(np.array(entity.state.p_pos) -
