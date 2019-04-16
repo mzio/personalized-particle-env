@@ -4,8 +4,6 @@ import os
 import sys
 import inspect
 
-sys.path.insert(1, os.path.join(sys.path[0], '..'))
-
 import particles.scenarios as scenarios
 from particles.policy import InteractivePolicy
 from particles.environment import PersonalAgentEnv
@@ -18,17 +16,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('-s', '--scenario', default='simple.py',
                         help='Path of the scenario Python script.')
+    parser.add_argument('--num_agents', default=None, type=int)
     parser.add_argument('-d', '--debug', action='store_true',
                         help='Print for debugging.')
     parser.add_argument('-p', '--personalization',
-                        help='Personalizaiton setup: "variance", "remap", "none" supported')
+                        help='Personalization setup: "variance", "remap", "none" supported')
+    parser.add_argument('--specific_agents', default='',
+                        help='Only load specific agent(s)')
     parser.add_argument('-e', '--episode_len', default=1000,
                         type=int, help='Number of timesteps per episode')
+    parser.add_argument('--seed', default=42, type=int,
+                        help='Randomization seed')
     args = parser.parse_args()
 
     # load scenario from script
     scenario = scenarios.load(args.scenario).Scenario(
-        kind=args.personalization, seed=42)
+        kind=args.personalization, num_agents=args.num_agents, seed=args.seed,
+        load_agents=None, save_agents=None,
+        specific_agents=None)
     # create world
     world = scenario.make_world()
     world.episode_len = args.episode_len
@@ -43,8 +48,10 @@ if __name__ == '__main__':
     # execution loop
     obs_n = env.reset()
     for n in range(100):
-        x = 0
-        while x < args.episode_len:
+        t = 0
+        env.reset()
+        while t < args.episode_len:
+            ep_reward = 0
             # query for action from each agent's policy
             act_n = []
             for i, policy in enumerate(policies):
@@ -60,8 +67,10 @@ if __name__ == '__main__':
                 for agent in env.world.agents:
                     print(agent.name + " reward: %0.3f" %
                           env._get_reward(agent))
-            x += 1
+            t += 1
+            ep_reward += reward_n[0]
             if done_n[0] is True:
-                env.reset()
                 break
-        env.reset()
+
+        print('Episode {}\tLast reward: {:.3f}'.format(
+            n, ep_reward))

@@ -94,6 +94,7 @@ class Scenario(BaseScenario):
     def reward(self, agent, world):
         # Euclidean distance reward
         dist2 = self._get_distance(agent, world)
+        # print((world.episode_len - world.timesteps) / world.episode_len)
         if dist2 < 0.001:  # Faster agents are rewarded more
             return -dist2 + (world.episode_len - world.timesteps) / world.episode_len
         return -dist2
