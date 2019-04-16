@@ -1,8 +1,10 @@
-for i in range(10):
-    fname = './run_scripts/ppe_simple_actor-critic_{}.sh'.format(i)
-    job_id = 'ppe_simple_actor-critic_{}'.format(i)
-    with open(fname, 'w') as rsh:
-        rsh.write('''\
+for p in range(11):
+    name = 'PersonalAgent-' + str(p) if p < 10 else ''
+    for i in range(10):
+        fname = './run_scripts/ppe_simple_actor-critic_{}-{}.sh'.format(p, i)
+        job_id = 'ppe_simple_actor-critic_{}-{}'.format(p, i)
+        with open(fname, 'w') as rsh:
+            rsh.write('''\
 #!/bin/bash
 #SBATCH -J {}  # Job name
 #SBATCH -p fas_gpu               # Partition to submit to
@@ -18,8 +20,10 @@ source activate prl_env
 
 python main.py \
 --scenario simple.py \
---p 'none' --seed {} \
---num_episodes 1000 \
+--num_episodes 500 \
+--p 'variance' --seed {} \
 --save_results './results/results_{}.csv' \
---save_model './trained_models/model_{}.pt'
-'''.format(job_id, job_id, job_id, i, i, i))
+--save_model './trained_models/model_{}.pt' \
+--load_agents 'agents_many_10-1' \
+--specific_agents '{}'
+'''.format(job_id, job_id, job_id, i, job_id, job_id, name))
