@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Categorical
 
+eps = np.finfo(np.float32).eps.item()
+
 
 class Reinforce(nn.Module):
     def __init__(self, env, agent_index, obs_shape, action_shape):
@@ -34,20 +36,20 @@ class Reinforce(nn.Module):
         self.saved_log_probs.append(m.log_prob(action))
         return action.item()
 
-    def finish_episode(self, policy, optimizer):
+    def finish_episode(self, optimizer, gamma):
         R = 0
         policy_loss = []
         returns = []
-        for r in policy.rewards[::-1]:
-            R = r + args.gamma * R
+        for r in self.rewards[::-1]:
+            R = r + gamma * R
             returns.insert(0, R)
         returns = torch.tensor(returns)
         returns = (returns - returns.mean()) / (returns.std() + eps)
-        for log_prob, R in zip(policy.saved_log_probs, returns):
+        for log_prob, R in zip(self.saved_log_probs, returns):
             policy_loss.append(-log_prob * R)
         optimizer.zero_grad()
         policy_loss = torch.cat(policy_loss).sum()
         policy_loss.backward()
         optimizer.step()
-        del policy.rewards[:]
-        del policy.saved_log_probs[:]
+        del self.rewards[:]
+        del self.saved_log_probs[:]
