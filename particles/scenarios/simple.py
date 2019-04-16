@@ -121,7 +121,7 @@ if __name__ == "__main__":
         '--save_agents', default='agents-0.json')
     parser.add_argument('--seed', default=42, type=int,
                         help='Randomization seed')
-    save_agents = './particles/configs/' + args.save_agents
+    save_agents = '../configs/' + args.save_agents
 
     scenario = Scenario(kind=args.kind, seed=args.seed,
                         num_agents=args.num_agents, save_agents=save_agents)

@@ -109,7 +109,7 @@ class Population(object):
             if save_agents:
                 with open(save_agents, 'w') as f:
                     # print(json.dumps(saved_agent_configs))
-                    json.dump(saved_agent_configs, f)
+                    json.dump(self.saved_agent_configs, f)
 
     def get_personalization(self, seed, kind='variance'):
         """
