@@ -69,7 +69,7 @@ class Agent(Entity):
 # Population of agents
 class Population(object):
     def __init__(self, num_agents=None, personalization='variance', seed=None,
-                 load_agents=None, save_agents='agents.json'):
+                 load_agents=None, save_agents='agents.json', include_default=False):
         """
         Defines a population of agents, which may have personalized reactions to the input actions
         :load_agents: if pre-specified, just load the agents from a .json file  
@@ -96,8 +96,11 @@ class Population(object):
             self.colors = [[1., 0, 0], [1, 1, 0], [
                 0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1]]
             for i in range(self.num_agents):
-                mapping = self.get_personalization(
-                    seed=i, kind=personalization)
+                if i == 0 and include_default:
+                    mapping = self.get_personalization(seed=i, kind='none')
+                else:
+                    mapping = self.get_personalization(
+                        seed=i, kind=personalization)
                 name = 'PersonalAgent-{}'.format(i)
                 agent = Agent(name=name, mapping=mapping)
                 np.random.seed(i)
@@ -106,6 +109,7 @@ class Population(object):
                 self.agents.append(agent)
                 self.saved_agent_configs.append(
                     {'name': name, 'mapping': mapping, 'color': agent.color})
+
             if save_agents:
                 with open(save_agents, 'w') as f:
                     # print(json.dumps(saved_agent_configs))

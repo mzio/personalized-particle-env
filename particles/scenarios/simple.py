@@ -7,11 +7,13 @@ from particles.scenario import BaseScenario
 
 
 class Scenario(BaseScenario):
-    def __init__(self, kind, seed, num_agents=None, load_agents=None, save_agents=None):
+    def __init__(self, kind, seed, num_agents=None, load_agents=None,
+                 save_agents=None, include_default=False):
         # Intialize by creating population of potnetial agents
         self.population = Population(
             num_agents=num_agents, personalization=kind, seed=seed,
-            load_agents=load_agents, save_agents=save_agents)
+            load_agents=load_agents, save_agents=save_agents,
+            include_default=include_default)
         self.num_agents = 1  # Number of agents at a time
         self.seed = seed  # Reproducibility
         self.random_start = False
@@ -85,8 +87,8 @@ class Scenario(BaseScenario):
 
     def _get_distance(self, agent, world):
         # Calculate euclidean distance
-        return np.sum(np.square(np.array(agent.state.p_pos)
-                                - np.array(world.landmarks[0].state.p_pos)))
+        return np.sum(np.square(np.array(agent.state.p_pos) -
+                                np.array(world.landmarks[0].state.p_pos)))
 
     def reward(self, agent, world):
         # Euclidean distance reward
@@ -100,8 +102,8 @@ class Scenario(BaseScenario):
         # return agent.state.p_pos
         entity_pos = []
         for entity in world.landmarks:
-            entity_pos.append(np.array(entity.state.p_pos)
-                              - np.array(agent.state.p_pos))
+            entity_pos.append(np.array(entity.state.p_pos) -
+                              np.array(agent.state.p_pos))
         return np.concatenate([agent.state.p_vel] + entity_pos + [agent.state.p_pos])
 
     def done(self, agent, world):
