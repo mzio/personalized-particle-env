@@ -10,7 +10,8 @@ import particles
 import particles.scenarios as scenarios
 from particles.environment import PersonalAgentEnv
 
-from models.policy import Reinforce
+from models.reinforce import Reinforce
+from models.actor_critic import ActorCritic as model
 
 parser = argparse.ArgumentParser(description=None)
 parser.add_argument('-s', '--scenario', default='simple.py',
@@ -62,11 +63,10 @@ env.discrete_action_input = True
 if args.render:
     env.render()
 
-policies = [Reinforce(env, i, env.observation_space[i].shape[0],
-                      env.action_space[0].n) for i in range(env.n)]
+policies = [model(env, i, env.observation_space[i].shape[0],
+                  env.action_space[0].n) for i in range(env.n)]
 
 optimizer = optim.Adam(policies[0].parameters(), lr=args.lr)
-eps = np.finfo(np.float32).eps.item()
 
 
 obs_n = env.reset()
@@ -104,7 +104,7 @@ for n in range(args.num_episodes):
             break
 
     running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
-    policy.finish_episode(policies[0], optimizer)
+    policy.finish_episode(optimizer, args.gamma)
     if n % args.log_interval == 0:
         print('Episode {}\tLast reward: {:.3f}\tAverage reward: {:.2f}'.format(
             n, ep_reward, running_reward))
