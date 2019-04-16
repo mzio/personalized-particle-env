@@ -1,6 +1,6 @@
 for i in range(10):
-    fname = './run_scripts/ppe_simple_reinforce_{}.sh'.format(i)
-    job_id = 'ppe_simple_reinforce_{}'.format(i)
+    fname = './run_scripts/ppe_simple_actor-critic_{}.sh'.format(i)
+    job_id = 'ppe_simple_actor-critic_{}'.format(i)
     with open(fname, 'w') as rsh:
         rsh.write('''\
 #!/bin/bash
@@ -19,6 +19,7 @@ source activate prl_env
 python main.py \
 --scenario simple.py \
 --p 'none' --seed {} \
+--num_episodes 1000 \
 --save_results './results/results_{}.csv' \
 --save_model './trained_models/model_{}.pt'
-'''.format(i, i, i))
+'''.format(job_id, job_id, job_id, i, i, i))
