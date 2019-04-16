@@ -11,11 +11,14 @@ import particles.scenarios as scenarios
 from particles.environment import PersonalAgentEnv
 
 from models.reinforce import Reinforce
-from models.actor_critic import ActorCritic as model
+from models.actor_critic import ActorCritic
 
 parser = argparse.ArgumentParser(description=None)
+
 parser.add_argument('-s', '--scenario', default='simple.py',
                     help='Path of the scenario Python script')
+parser.add_argument(
+    '--model', default='ActorCritic')
 parser.add_argument('--num_agents', default=None, type=int)
 parser.add_argument('--load_agents', default='')
 parser.add_argument(
@@ -43,6 +46,13 @@ parser.add_argument('--log_interval', default=1, type=int,
 parser.add_argument('--save_results', default='./results/results.csv')
 parser.add_argument('--save_model', default='./trained_models/model.pt')
 args = parser.parse_args()
+
+if args.model == 'ActorCritic':
+    model = ActorCritic
+elif args.model == 'Reinforce':
+    model = Reinforce
+else:
+    raise NotImplementedError
 
 load_agents = None
 if args.load_agents != '':
@@ -81,7 +91,7 @@ obs_n = env.reset()
 running_reward = 10
 
 info = [['Timestep', 'Episode', 'State_x_vel', 'State_y_vel',
-         'State_x_pos', 'State_y_pos', 'Action', 'Reward', 'Episode_Reward']]
+         'State_x_pos', 'State_y_pos', 'Action', 'Relative Reward', 'Episode_Reward']]
 
 total_timesteps = 0
 
@@ -112,9 +122,14 @@ for n in range(args.num_episodes):
         if done_n[i] is True:
             break
 
+        try:
+            relative_reward = policy.rewards[-1] - policy.rewards[-2]
+        except:
+            relative_reward = 0
+
         info.append([total_timesteps, n, obs_n[0][0], obs_n[0][1],
                      obs_n[0][2], obs_n[0][3],
-                     act_n[0], reward_n[0], ep_reward])
+                     act_n[0], relative_reward, ep_reward])
 
     running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
     policy.finish_episode(optimizer, args.gamma)

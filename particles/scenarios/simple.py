@@ -101,7 +101,7 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         # Get positions of all entities in this agent's reference frame
-        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos])
+        # return np.concatenate([agent.state.p_vel] + [agent.state.p_pos])
         entity_pos = []
         for entity in world.landmarks:
             entity_pos.append(np.array(entity.state.p_pos) -
