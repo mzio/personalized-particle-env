@@ -28,6 +28,8 @@ parser.add_argument('-d', '--debug', action='store_true',
                     help='Print for debugging')
 parser.add_argument('-p', '--personalization',
                     help='Personalization setup: "variance", "remap", "none" supported')
+parser.add_argument('--specific_agents', default='',
+                    help='Only load specific agent(s)')
 parser.add_argument('-e', '--episode_len', default=1000,
                     type=int, help='Number of timesteps per episode')
 parser.add_argument('-ne', '--num_episodes', default=100,
@@ -44,13 +46,19 @@ args = parser.parse_args()
 
 load_agents = None
 if args.load_agents != '':
-    load_agents = './particles/configs/' + args.load_agents
+    load_agents = './particles/configs/' + args.load_agents + '.json'
 
-save_agents = './particles/configs/' + args.save_agents
+save_agents = './particles/configs/' + args.save_agents + '.json'
+
+if args.specific_agents != '':
+    specific_agents = args.specific_agents.split(' ')
+else:
+    specific_agents = None
 
 scenario = scenarios.load(args.scenario).Scenario(
     kind=args.personalization, num_agents=args.num_agents, seed=args.seed,
-    load_agents=load_agents, save_agents=save_agents)
+    load_agents=load_agents, save_agents=save_agents,
+    specific_agents=specific_agents)
 # create world
 world = scenario.make_world()
 world.episode_len = args.episode_len

@@ -69,14 +69,17 @@ class Agent(Entity):
 # Population of agents
 class Population(object):
     def __init__(self, num_agents=None, personalization='variance', seed=None,
-                 load_agents=None, save_agents='agents.json', include_default=False):
+                 load_agents=None, save_agents='agents.json', include_default=False,
+                 specific_agents=None):
         """
         Defines a population of agents, which may have personalized reactions to the input actions
-        :load_agents: if pre-specified, just load the agents from a .json file  
+        :load_agents: if pre-specified, just load the agents from a .json file
         :save_agents: specifies where to save configs to
+        :specified_agent: list of specific agents (by name) to load
         """
         super(Population, self).__init__()
-        self.num_agents = num_agents  # Used to set seeds
+        self.num_agents = len(  # Used to set seeds
+            specific_agents) if specific_agents else num_agents
         self.agents = []
         self.saved_agent_configs = []
 
@@ -84,10 +87,15 @@ class Population(object):
             # load_agents is a json that holds agent ids, their color, and mapping
             with open(load_agents, 'r') as f:
                 loaded_agents = json.load(f, object_hook=self._convert_keys)
+
+            check = specific_agents if specific_agents else [
+                a['name'] for a in loaded_agents]
+
             for a in loaded_agents:
-                agent = Agent(name=a['name'], mapping=a['mapping'])
-                agent.color = a['color']
-                self.agents.append(agent)
+                if a['name'] in check:
+                    agent = Agent(name=a['name'], mapping=a['mapping'])
+                    agent.color = a['color']
+                    self.agents.append(agent)
         else:
             assert self.num_agents is not None
             # Hard code possible remaps
