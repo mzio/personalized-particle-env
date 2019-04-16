@@ -1,5 +1,6 @@
 # Simple scenario - agent needs to get to the only landmark
 
+import argparse
 import numpy as np
 from particles.core import World, Agent, Population, Landmark
 from particles.scenario import BaseScenario
@@ -84,8 +85,8 @@ class Scenario(BaseScenario):
 
     def _get_distance(self, agent, world):
         # Calculate euclidean distance
-        return np.sum(np.square(np.array(agent.state.p_pos) -
-                                np.array(world.landmarks[0].state.p_pos)))
+        return np.sum(np.square(np.array(agent.state.p_pos)
+                                - np.array(world.landmarks[0].state.p_pos)))
 
     def reward(self, agent, world):
         # Euclidean distance reward
@@ -99,8 +100,8 @@ class Scenario(BaseScenario):
         # return agent.state.p_pos
         entity_pos = []
         for entity in world.landmarks:
-            entity_pos.append(np.array(entity.state.p_pos) -
-                              np.array(agent.state.p_pos))
+            entity_pos.append(np.array(entity.state.p_pos)
+                              - np.array(agent.state.p_pos))
         return np.concatenate([agent.state.p_vel] + entity_pos + [agent.state.p_pos])
 
     def done(self, agent, world):
@@ -108,3 +109,22 @@ class Scenario(BaseScenario):
         if self._get_distance(agent, world) < 0.001:
             return True
         return False
+
+
+# If call from terminal, generate population of agents beforehand
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=None)
+    parser.add_argument('--num_agents', default=None, type=int)
+    parser.add_argument('-p', '--personalization',
+                        help='Personalization setup: "variance", "remap", "none" supported')
+    parser.add_argument(
+        '--save_agents', default='agents-0.json')
+    parser.add_argument('--seed', default=42, type=int,
+                        help='Randomization seed')
+    save_agents = './particles/configs/' + args.save_agents
+
+    scenario = Scenario(kind=args.kind, seed=args.seed,
+                        num_agents=args.num_agents, save_agents=save_agents)
+    print('{} agent(s) generated!'.format(args.num_agents))
+    for config in scenario.population.saved_agent_configs:
+        print(config)

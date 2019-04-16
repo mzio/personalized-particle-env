@@ -78,6 +78,7 @@ class Population(object):
         super(Population, self).__init__()
         self.num_agents = num_agents  # Used to set seeds
         self.agents = []
+        self.saved_agent_configs = []
 
         if load_agents:
             # load_agents is a json that holds agent ids, their color, and mapping
@@ -89,7 +90,6 @@ class Population(object):
                 self.agents.append(agent)
         else:
             assert self.num_agents is not None
-            saved_agent_configs = []
             # Hard code possible remaps
             self.remaps = [[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
                            [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]]
@@ -104,7 +104,7 @@ class Population(object):
                 # Why not
                 agent.color = self.colors[i % len(self.colors)]
                 self.agents.append(agent)
-                saved_agent_configs.append(
+                self.saved_agent_configs.append(
                     {'name': name, 'mapping': mapping, 'color': agent.color})
             if save_agents:
                 with open(save_agents, 'w') as f:
