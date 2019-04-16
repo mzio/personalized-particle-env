@@ -100,12 +100,12 @@ class Scenario(BaseScenario):
 
     def observation(self, agent, world):
         # Get positions of all entities in this agent's reference frame
-        # return agent.state.p_pos
+        return np.concatenate([agent.state.p_vel] + [agent.state.p_pos])
         entity_pos = []
         for entity in world.landmarks:
             entity_pos.append(np.array(entity.state.p_pos) -
                               np.array(agent.state.p_pos))
-        return np.concatenate([agent.state.p_vel] + entity_pos + [agent.state.p_pos])
+        return np.concatenate([agent.state.p_vel] + entity_pos)
 
     def done(self, agent, world):
         # If agent reaches reward, return done

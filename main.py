@@ -80,7 +80,8 @@ optimizer = optim.Adam(policies[0].parameters(), lr=args.lr)
 obs_n = env.reset()
 running_reward = 10
 
-rewards = [['Episode', 'Reward']]
+info = [['Timestep', 'Episode', 'State_x_vel', 'State_y_vel',
+         'State_x_pos', 'State_y_pos', 'Action', 'Reward', 'Episode_Reward']]
 
 total_timesteps = 0
 
@@ -88,8 +89,8 @@ for n in range(args.num_episodes):
     t = 0
     env.reset()
     while t < args.episode_len:
-        act_n = []
         ep_reward = 0
+        act_n = []
         for i, policy in enumerate(policies):
             act_n.append(policy.action(obs_n[i]))
             # step environment
@@ -104,26 +105,30 @@ for n in range(args.num_episodes):
             for agent in env.world.agents:
                 print(agent.name + " reward: %0.3f" %
                       env._get_reward(agent))
-        policy.rewards.append(reward_n[i])
-        ep_reward += reward_n[i]
+        policy.rewards.append(reward_n[0])
+        ep_reward += reward_n[0]
         t += 1
         total_timesteps += 1
         if done_n[i] is True:
             break
 
+        info.append([total_timesteps, n, obs_n[0][0], obs_n[0][1],
+                     obs_n[0][2], obs_n[0][3],
+                     act_n[0], reward_n[0], ep_reward])
+
     running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
     policy.finish_episode(optimizer, args.gamma)
-    if n % args.log_interval == 0:
-        print('Episode {}\tLast reward: {:.3f}\tAverage reward: {:.2f}'.format(
-            n, ep_reward, running_reward))
-        rewards.append([total_timesteps, ep_reward])
+    # if n % args.log_interval == 0:
+    print('Episode {}\tLast reward: {:.3f}\tAverage reward: {:.2f}'.format(
+        n, ep_reward, running_reward))
+
 
 # Save model and results
 torch.save(policies[0].state_dict(), args.save_model)
 
 with open(args.save_results, 'w') as f:
     writer = csv.writer(f)
-    writer.writerows(rewards)
+    writer.writerows(info)
 
 # python main.py --scenario simple.py --p 'none' --seed {} --save_results './results/results_{}.csv' --save_model './trained_models/model_{}.pt'
 
