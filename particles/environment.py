@@ -175,7 +175,7 @@ class PersonalAgentEnv(gym.Env):
             # Create viewers if necessary
             if self.viewers[i] is None:
                 from particles import rendering
-                self.viewers[i] = rendering.Viewer(700, 700)
+                self.viewers[i] = rendering.Viewer(500, 500)
 
     # Create rendering geometry
         if self.render_geoms is None:
@@ -211,7 +211,7 @@ class PersonalAgentEnv(gym.Env):
             else:
                 pos = self.agents[i].state.p_pos
             self.viewers[i].set_bounds(
-                pos[0]-cam_range, pos[0]+cam_range, pos[1]-cam_range, pos[1]+cam_range)
+                pos[0] - cam_range, pos[0] + cam_range, pos[1] - cam_range, pos[1] + cam_range)
             # update geometry positions
             for e, entity in enumerate(self.world.entities):
                 self.render_geoms_xform[e].set_translation(*entity.state.p_pos)
@@ -273,7 +273,7 @@ class BatchPersonalAgentEnv(gym.Env):
         info_n = {'n': []}
         i = 0
         for env in self.env_batch:
-            obs, reward, done, _ = env.step(action_n[i:(i+env.n)], time)
+            obs, reward, done, _ = env.step(action_n[i:(i + env.n)], time)
             i += env.n
             obs_n += obs
             # reward = [r / len(self.env_batch) for r in reward]
