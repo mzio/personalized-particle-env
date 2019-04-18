@@ -19,6 +19,7 @@ class Reinforce(nn.Module):
 
         self.saved_log_probs = []
         self.rewards = []
+        self.policy_losses = []
 
     def forward(self, x):
         x = self.linear1(x)
@@ -36,7 +37,7 @@ class Reinforce(nn.Module):
         self.saved_log_probs.append(m.log_prob(action))
         return action.item()
 
-    def finish_episode(self, optimizer, gamma):
+    def finish_episode1(self, optimizer, gamma):
         R = 0
         policy_loss = []
         returns = []
@@ -51,5 +52,33 @@ class Reinforce(nn.Module):
         policy_loss = torch.cat(policy_loss).sum()
         policy_loss.backward()
         optimizer.step()
+        del self.rewards[:]
+        del self.saved_log_probs[:]
+
+    def finish_episode(self, optimizer, gamma):
+        R = 0
+        policy_loss = []
+        returns = []
+        for r in self.rewards[::-1]:
+            R = r + gamma * R
+            returns.insert(0, R)
+        returns = torch.tensor(returns)
+        returns = (returns - returns.mean()) / (returns.std() + eps)
+        for log_prob, R in zip(self.saved_log_probs, returns):
+            policy_loss.append(-log_prob * R)  # Not collecting average?
+        # optimizer.zero_grad()
+        policy_loss = torch.cat(policy_loss).sum()
+        self.policy_losses.append(policy_loss)
+
+    def update(self, optimizer, inner_updates):
+        optimizer.zero_grad()
+        try:
+            policy_loss = torch.cat(self.policy_losses).sum() / inner_updates
+        except:
+            policy_loss = torch.stack(
+                self.policy_losses, dim=0).sum() / inner_updates
+        policy_loss.backward()
+        optimizer.step()
+        self.policy_losses = []
         del self.rewards[:]
         del self.saved_log_probs[:]
