@@ -91,7 +91,7 @@ obs_n = env.reset()
 running_reward = 10
 
 info = [['Timestep', 'Episode', 'State_x_vel', 'State_y_vel',
-         'State_x_pos', 'State_y_pos', 'Action', 'Relative Reward', 'Episode_Reward']]
+         'State_x_pos', 'State_y_pos', 'Action', 'Relative Reward', 'Reward']]
 
 total_timesteps = 0
 
