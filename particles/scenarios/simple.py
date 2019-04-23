@@ -97,7 +97,7 @@ class Scenario(BaseScenario):
         dist2 = self._get_distance(agent, world)
         # print((world.episode_len - world.timesteps) / world.episode_len)
         if dist2 < 0.001:  # Faster agents are rewarded more
-            return -dist2 + (world.episode_len - world.timesteps) / world.episode_len
+            return (-dist2 + (world.episode_len - world.timesteps) / world.episode_len)
         return -dist2
 
     def observation(self, agent, world):
@@ -107,7 +107,7 @@ class Scenario(BaseScenario):
         for entity in world.landmarks:
             entity_pos.append(np.array(entity.state.p_pos) -
                               np.array(agent.state.p_pos))
-        return np.concatenate([agent.state.p_vel] + entity_pos)
+        return np.concatenate([agent.state.p_vel] + entity_pos + [agent.state.p_pos])
 
     def done(self, agent, world):
         # If agent reaches reward, return done
