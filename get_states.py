@@ -1,4 +1,4 @@
-# Run this to visualize trained policies
+# Run this to get states
 
 import gym
 import csv
@@ -47,6 +47,7 @@ fpath = args.trained_models
 trained_models = [join(fpath, f) for f in listdir(
     fpath) if (isfile(join(fpath, f))) and ('.pt' in f)]
 
+print(trained_models)
 
 load_agents = None
 if args.load_agents != '':
@@ -109,4 +110,6 @@ with open(args.save_results, 'w') as f:
     writer.writerows(states)
 
 # python get_states.py --scenario simple.py --p 'none' --seed 0 --trained_models './trained_models/' --load_agents 'agents_many_10-1'
+
+print(states)
 

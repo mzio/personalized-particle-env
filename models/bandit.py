@@ -51,4 +51,3 @@ class ThompsonSampler():
                 self.parameters[self.current_model_ix[1]] += 1
         except:
             pass  # Auto-accept first reward
-
