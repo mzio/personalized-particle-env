@@ -60,7 +60,7 @@ env.discrete_action_input = True
 
 env.render()
 
-policies = [Reinforce(env, i, env.observation_space[i].shape[0],
+policies = [Reinforce(i, env.observation_space[i].shape[0],
                       env.action_space[0].n) for i in range(env.n)]
 
 policies[0].load_state_dict(torch.load(

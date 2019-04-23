@@ -1,4 +1,4 @@
-# Run this to visualize trained policies
+# Run this to get states
 
 import gym
 import csv

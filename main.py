@@ -32,7 +32,7 @@ parser.add_argument('--inner_updates', type=int, default=1,
 parser.add_argument('-d', '--debug', action='store_true',
                     help='Print for debugging')
 parser.add_argument('-p', '--personalization',
-                    help='Personalization setup: "variance", "remap", "none" supported')
+                    help='Personalization setup: "variance", "remap", "cluster", "none" supported')
 parser.add_argument('--specific_agents', default='',
                     help='Only load specific agent(s)')
 parser.add_argument('-e', '--episode_len', default=100,
@@ -84,7 +84,7 @@ env.seed(args.seed)
 if args.render:
     env.render()
 
-policies = [model(env, i, env.observation_space[i].shape[0],
+policies = [model(i, env.observation_space[i].shape[0],
                   env.action_space[0].n) for i in range(env.n)]
 
 optimizer = optim.Adam(policies[0].parameters(), lr=args.lr)
@@ -100,47 +100,6 @@ total_timesteps = 0
 episode_ix = 0
 
 num_episodes = int(args.num_episodes / args.inner_updates)
-
-# for n in range(args.num_episodes):
-#     t = 0
-#     env.reset()
-#     while t < args.episode_len:
-#         ep_reward = 0
-#         act_n = []
-#         for i, policy in enumerate(policies):
-#             act_n.append(policy.action(obs_n[i]))
-#             # step environment
-#         obs_n, reward_n, done_n, _ = env.step(act_n)
-#         if args.debug:
-#             print('OBSERVATIONS: {}'.format(obs_n))
-#         # render all agent views
-#         if args.render:
-#             env.render()
-#         # display rewards
-#         if args.debug:
-#             for agent in env.world.agents:
-#                 print(agent.name + " reward: %0.3f" %
-#                       env._get_reward(agent))
-#         policy.rewards.append(reward_n[0])
-#         ep_reward += reward_n[0]
-#         t += 1
-#         total_timesteps += 1
-#         if done_n[i] is True:
-#             break
-
-#         try:
-#             relative_reward = policy.rewards[-1] - policy.rewards[-2]
-#         except:
-#             relative_reward = 0
-
-#         info.append([total_timesteps, n, obs_n[0][0], obs_n[0][1],
-#                      act_n[0], relative_reward, ep_reward])
-
-#     running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
-#     policy.finish_episode1(optimizer, args.gamma)
-#     # if n % args.log_interval == 0:
-#     print('Episode {}\tLast reward: {:.3f}\tAverage reward: {:.2f}'.format(
-#         n, ep_reward, running_reward))
 
 for n in range(num_episodes):
     for update in range(args.inner_updates):
@@ -204,3 +163,5 @@ with open(args.save_results, 'w') as f:
 #     print("Solved! Running reward is now {} and "
 #           "the last episode runs to {} time steps!".format(running_reward, t))
 #     break
+
+# python main.py --num_agents 10 --personalization 'variance' --load_agents 'agents_many_10-1' --seed 42 --specific_agents 'PersonalAgent-0'  --model 'Reinforce' --inner_updates 1 --log_interval 1 --episode_len 1000 --num_episodes 1000 --save_results './results/results-r-1.csv' --save_model './trained_models/model-r-1.pt'
