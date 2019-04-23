@@ -64,18 +64,30 @@ class Agent(Entity):
         self.name = name
         # Personalized action function.
         self.personalize = lambda x: mapping[x]
+        # Used for identification
+        self.mapping = self._polarize(mapping)
+        self.cluster = None
+
+    def _polarize(self, mapping):
+        # Convert [x, y] to polar representation
+        polar_mapping = {}
+        for k, v in mapping.items():
+            polar_mapping[k] = np.arctan2(v[1], v[0])
+        return polar_mapping
 
 
 # Population of agents
 class Population(object):
     def __init__(self, num_agents=None, personalization='variance', seed=None,
                  load_agents=None, save_agents='agents.json', include_default=False,
-                 specific_agents=None):
+                 specific_agents=None, num_clusters=None):
         """
         Defines a population of agents, which may have personalized reactions to the input actions
         :load_agents: if pre-specified, just load the agents from a .json file
         :save_agents: specifies where to save configs to
         :specified_agent: list of specific agents (by name) to load
+        :personalization: 'variance', 'remap', 'cluster', 'none' 
+        :num_clusters: num of clusters for 'cluster' personalization
         """
         super(Population, self).__init__()
         self.num_agents = len(  # Used to set seeds
@@ -95,35 +107,49 @@ class Population(object):
                 if a['name'] in check:
                     agent = Agent(name=a['name'], mapping=a['mapping'])
                     agent.color = a['color']
+                    agent.cluster = a['cluster']
+                    # agent.mapping = a['mapping_angles']
                     self.agents.append(agent)
         else:
             assert self.num_agents is not None
             # Hard code possible remaps
-            self.remaps = [[-1.0, -1.0], [-1.0, 0.0], [-1.0, 1.0], [0.0, -1.0],
-                           [0.0, 1.0], [1.0, -1.0], [1.0, 0.0], [1.0, 1.0]]
+            self.remaps = [[-1., -1.], [-1., 0.], [-1., 1.], [0., -1.],
+                           [0., 1.], [1., -1.], [1., 0.], [1., 1.]]
+            self.cluster_remaps = [[-1., 0.], [1., 0.], [0., -1.], [0., 1.]]
             self.colors = [[1., 0, 0], [1, 1, 0], [
                 0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1]]
             for i in range(self.num_agents):
-                if i == 0 and include_default:
-                    mapping = self.get_personalization(seed=i, kind='none')
-                else:
+                if personalization == 'cluster':
+                    assert num_clusters is not None
+                    c = i % num_clusters  # assign clusters
                     mapping = self.get_personalization(
-                        seed=i, kind=personalization)
+                        seed=i, kind='cluster', cluster=c)
+                else:
+                    if i == 0 and include_default:
+                        mapping = self.get_personalization(seed=i, kind='none')
+                    else:
+                        mapping = self.get_personalization(
+                            seed=i, kind=personalization)
                 name = 'PersonalAgent-{}'.format(i)
                 agent = Agent(name=name, mapping=mapping)
-                np.random.seed(i)
+                try:  # Cluster
+                    agent.cluster = c
+                except:
+                    agent.cluster = None
                 # Why not
+                np.random.seed(i)
                 agent.color = self.colors[i % len(self.colors)]
                 self.agents.append(agent)
                 self.saved_agent_configs.append(
-                    {'name': name, 'mapping': mapping, 'color': agent.color})
+                    {'name': name, 'mapping': mapping, 'color': agent.color,
+                     'cluster': agent.cluster, 'mapping_angles': agent.mapping})
 
             if save_agents:
                 with open(save_agents, 'w') as f:
                     # print(json.dumps(saved_agent_configs))
                     json.dump(self.saved_agent_configs, f)
 
-    def get_personalization(self, seed, kind='variance'):
+    def get_personalization(self, seed, kind='variance', cluster=None):
         """
         Maps default 1-hot 4-dim input to a variation   
         By default mappings are independent of each other.
@@ -131,21 +157,37 @@ class Population(object):
         - 'variance': Maps 0 value to uniform between -1 and 1, i.e. [1, 0] -> [1, Unif(-1, 1)]
         - 'remap': Remaps controls to any untaken [x, y] pairing where x, y in {-1, 0, 1}
         - 'none': Default controls
+        :cluster: latent variable that determines cluster. Used to help with inherent clusters.
         """
-        np.random.seed(seed)
         if kind == 'variance':
+            np.random.seed(seed)
             mapping = {1: [-1., np.random.uniform(-1, 1)],  # [-1, 0]
                        2: [+1., np.random.uniform(-1, 1)],  # [+1, 0]
                        3: [np.random.uniform(-1, 1), -1.],  # [0, -1]
                        4: [np.random.uniform(-1, 1), +1.]}  # [0, +1]
+
         elif kind == 'remap':
+            np.random.seed(seed)
             ix_n = np.random.choice(
-                self.remaps.shape[0], size=4, replace=False)
+                len(self.remaps), size=4, replace=False)
             mapping = {}
             for k, v in enumerate(self.remaps[ix_n]):
                 mapping[k + 1] = v
+
+        elif kind == 'cluster':
+            assert cluster is not None
+            mapping = {}
+            np.random.seed(cluster * 10)  # First initialize clusters
+            ix_n = np.random.choice(
+                len(self.cluster_remaps), size=4, replace=False)
+            mapping = {}
+            for k, v in enumerate(np.array(self.cluster_remaps)[ix_n]):
+                mapping[k + 1] = v
+            mapping = self._randomize(mapping, seed=seed)
+
         elif kind == 'none':
             mapping = {1: [-1., 0.], 2: [1., 0.], 3: [0., -1.], 4: [0., 1.]}
+
         else:
             print('Invalid kind of personalization specified.')
             raise NotImplementedError
@@ -160,6 +202,21 @@ class Population(object):
             except:
                 return x
         return x
+
+    def _randomize(self, mapping, seed, b=0.5):
+        """
+        Helper function for further variance
+        - Currently uses uniform distribution (b is bound)
+        """
+        np.random.seed(seed)
+        map_ = {}
+        for k, v in mapping.items():
+            x, y = v
+            if x == 0:
+                map_[k] = [np.random.uniform(-b, b), y]
+            elif y == 0:
+                map_[k] = [x, np.random.uniform(-b, b)]
+        return map_
 
 
 # (Multi-)agent world
