@@ -26,7 +26,7 @@ python main.py \
 --save_model './trained_models/model_{}.pt' \
 --load_agents 'agents_many_10-1' \
 --specific_agents '{}' \
---model Reinforce' \
+--model 'Reinforce' \
 --inner_updates 10 \
 --log_interval 1 \
 --episode_len 100

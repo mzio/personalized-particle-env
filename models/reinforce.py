@@ -11,7 +11,7 @@ eps = np.finfo(np.float32).eps.item()
 
 
 class Reinforce(nn.Module):
-    def __init__(self, env, agent_index, obs_shape, action_shape):
+    def __init__(self, agent_index, obs_shape, action_shape):
         super(Reinforce, self).__init__()
         self.linear1 = nn.Linear(obs_shape, 64)
         self.dropout = nn.Dropout(p=0.6)

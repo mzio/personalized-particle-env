@@ -47,6 +47,7 @@ parser.add_argument('--log_interval', default=1, type=int,
                     help='Logging rate')
 parser.add_argument('--save_results', default='./results/results.csv')
 parser.add_argument('--save_model', default='./trained_models/model.pt')
+parser.add_argument('--checkpoint', default=100)
 args = parser.parse_args()
 
 if args.model == 'ActorCritic':
@@ -93,13 +94,8 @@ optimizer = optim.Adam(policies[0].parameters(), lr=args.lr)
 obs_n = env.reset()
 running_reward = -1.0
 
-<<<<<<< HEAD
-info = [['Timestep', 'Episode', 'State_x_vel', 'State_y_vel',
-         'State_x_pos', 'State_y_pos', 'Action', 'Relative Reward', 'Reward']]
-=======
 info = [['Timestep', 'Episode', 'State_x_pos', 'State_y_pos',
          'Action', 'Relative Reward', 'Episode_Reward']]
->>>>>>> bb4703541de732df83bdd31ac2f0504d6f85de90
 
 total_timesteps = 0
 episode_ix = 0
@@ -193,6 +189,7 @@ for n in range(num_episodes):
     running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
     policy.update(optimizer, args.inner_updates)
     env.reset()
+    torch.save(policies[0].state_dict(), args.save_model.split('.pt')[0] + '_cp_{}.pt'.format(n)) 
 
 
 # Save model and results
