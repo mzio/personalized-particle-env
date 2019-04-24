@@ -22,6 +22,8 @@ class ActorCritic(nn.Module):
         self.saved_actions = []
         self.rewards = []
 
+        self.losses = []
+
     def forward(self, x):
         x = F.relu(self.affine1(x))
         action_scores = self.action_head(x)
@@ -37,7 +39,7 @@ class ActorCritic(nn.Module):
             SavedAction(m.log_prob(action), state_value))
         return action.item()
 
-    def finish_episode(self, optimizer, gamma):
+    def finish_episode1(self, optimizer, gamma):
         R = 0
         saved_actions = self.saved_actions
         policy_losses = []
@@ -57,5 +59,37 @@ class ActorCritic(nn.Module):
             torch.stack(value_losses).sum()
         loss.backward()
         optimizer.step()
+        del self.rewards[:]
+        del self.saved_actions[:]
+
+    def finish_episode(self, optimizer, gamma):
+        R = 0
+        saved_actions = self.saved_actions
+        policy_losses = []
+        value_losses = []
+        returns = []
+        for r in self.rewards[::-1]:
+            R = r + gamma * R
+            returns.insert(0, R)
+        returns = torch.tensor(returns)
+        returns = (returns - returns.mean()) / (returns.std() + eps)
+        for (log_prob, value), R in zip(saved_actions, returns):
+            advantage = R - value.item()
+            policy_losses.append(-log_prob * advantage)
+            value_losses.append(F.smooth_l1_loss(value, torch.tensor([R])))
+        # optimizer.zero_grad()
+        loss = torch.stack(policy_losses).sum() + \
+            torch.stack(value_losses).sum()
+        self.losses.append(loss)
+
+    def update(self, optimizer, inner_updates):
+        optimizer.zero_grad()
+        try:
+            loss = torch.cat(self.losses).sum() / inner_updates
+        except:
+            loss = torch.stack(self.losses, dim=0).sum() / inner_updates
+        loss.backward()
+        optimizer.step()
+        self.losses = []
         del self.rewards[:]
         del self.saved_actions[:]
