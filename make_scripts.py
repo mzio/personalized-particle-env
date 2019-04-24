@@ -1,5 +1,5 @@
-for p in range(11):
-    name = 'PersonalAgent-' + str(p) if p < 10 else ''
+for p in range(16):
+    name = 'PersonalAgent-' + str(p) if p < 15 else ''
     for i in range(5):
         fname = './run_scripts/ppe_simple_reinforce_{}-{}.sh'.format(p, i)
         job_id = 'ppe_simple_reinforce_{}-{}'.format(p, i)
@@ -20,14 +20,14 @@ source activate prl_env
 
 python main.py \
 --scenario simple.py \
---num_episodes 500 \
+--num_episodes 1000 \
 --p 'variance' --seed {} \
 --save_results './results/results_{}.csv' \
 --save_model './trained_models/model_{}.pt' \
---load_agents 'agents_many_10-1' \
+--load_agents 'agents-clustered' \
 --specific_agents '{}' \
 --model 'Reinforce' \
 --inner_updates 10 \
 --log_interval 1 \
---episode_len 100
+--episode_len 1000
 '''.format(job_id, job_id, job_id, i, job_id, job_id, name))
