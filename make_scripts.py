@@ -29,5 +29,5 @@ python main.py \
 --model 'Reinforce' \
 --inner_updates 10 \
 --log_interval 1 \
---episode_len 1000
+--episode_len 100
 '''.format(job_id, job_id, job_id, i, job_id, job_id, name))

@@ -148,7 +148,8 @@ for n in range(num_episodes):
     running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
     policy.update(optimizer, args.inner_updates)
     env.reset()
-    torch.save(policies[0].state_dict(), args.save_model.split('.pt')[0] + '_cp_{}.pt'.format(n)) 
+    if n % 10 == 0:  # Only save checkpoints every 10 updates
+        torch.save(policies[0].state_dict(), args.save_model.split('.pt')[0] + '_cp_{}.pt'.format(n)) 
 
 
 # Save model and results
