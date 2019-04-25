@@ -28,13 +28,15 @@ class Reinforce(nn.Module):
         action_scores = self.linear2(x)
         return F.softmax(action_scores, dim=1)
 
-    def action(self, state):
+    def action(self, state, distribution=False):
         state = torch.from_numpy(state).float().unsqueeze(0)
         probs = self.forward(state)
         m = Categorical(probs)
         action = m.sample()
 
         self.saved_log_probs.append(m.log_prob(action))
+        if distribution:
+            return action.item(), m
         return action.item()
 
     def finish_episode1(self, optimizer, gamma):
