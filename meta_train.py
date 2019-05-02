@@ -73,7 +73,7 @@ else:
 
 
 assert args.load_agents != ''  # Need to load agents
-assert args.specific != ''    # Need to specify support models
+assert args.specific_agents != ''    # Need to specify support models
 
 load_agents = './particles/configs/' + args.load_agents + '.json'
 support_agents = args.specific_agents.split(' ')
