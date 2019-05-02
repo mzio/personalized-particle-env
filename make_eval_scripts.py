@@ -3,10 +3,10 @@ agents = 'PersonalAgent-6 PersonalAgent-7 PersonalAgent-13 PersonalAgent-14 Pers
 
 for model_ix in range(5):
     for i in range(5):
-        fname = './run_scripts/ppe-joint_adam_single-eval-model_{}-{}.sh'.format(
+        fname = './run_scripts_eval/ppe-joint_actual_adam_single-eval-model_{}-{}.sh'.format(
             model_ix, i)
-        job_id = 'ppe-joint_adam_single-eval-model_{}-{}'.format(model_ix, i)
-        model = 'model_ppe-joint_adam_single-{}.pt'.format(model_ix)
+        job_id = 'ppe-joint_actual_adam_single-eval-model_{}-{}'.format(model_ix, i)
+        model = 'model_ppe-joint_actual_adam_single-{}.pt'.format(model_ix)
         with open(fname, 'w') as rsh:
             rsh.write('''\
 #!/bin/bash
