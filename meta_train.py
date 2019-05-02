@@ -116,23 +116,32 @@ total_timesteps = 0
 episode_ix = 0
 
 
-def inner_train(policy):
-    new_policy = model(0, env.observation_space[i].shape[0],
+def inner_train(policy, env=env):
+    new_policy = model(0, env.observation_space[0].shape[0],
                        env.action_space[0].n)
-    new_policy.load_state_dict(torch.load(policy.state_dict()))
-    new_policy.finish_episode(optimizer, args.gamma)
+    new_policy.load_state_dict(policy.state_dict())
+    print('Input policy rewards: {}'.format(policy.rewards))
+    print('Input policy losses: {}'.format(policy.policy_losses))
+    # new_policy.rewards = policy.rewards
+    # new_
+    # new_policy.finish_episode(optimizer, args.gamma)
     for i in range(args.inner_updates):  # ex. 10, then do 10 times, update the average
         run_episode(new_policy)  # if 1 inner update, == SGD,
+        env.reset()
+    # print('Losses: {}'.format(new_policy.policy_losses))
     new_policy.update(optimizer, args.inner_updates)
     return new_policy
 
 
-def run_episode(policy, obs=None, train=True):  # Call this K times
+def run_episode(policy, env=env, obs=None, train=True):  # Call this K times
     t = 0
+    print(t)
+    print(env)
+    obs_n = env.reset()
     while t < args.episode_len:
         ep_reward = 0
         act_n = []
-        for i, policy in enumerate(policies):
+        for i, _ in enumerate(policies):
             act_n.append(policy.action(obs_n[i]))
 
         obs_n, reward_n, done_n, _ = env.step(act_n)
@@ -142,8 +151,8 @@ def run_episode(policy, obs=None, train=True):  # Call this K times
             obs.append(obs_n[0])
         t += 1
     # Want to update the policy after
-    env.reset()
     if train:
+        print(t)
         policy.finish_episode(optimizer, args.gamma)
     else:
         # Return reward
@@ -151,7 +160,7 @@ def run_episode(policy, obs=None, train=True):  # Call this K times
 
 
 def inner_eval(policy, obs):
-    meta_reward = run_episode(policy, obs, train=False)
+    meta_reward = run_episode(policy, obs=obs, train=False)
     return meta_reward
 
 
@@ -159,7 +168,7 @@ def inner_eval(policy, obs):
 
 for n in range(args.num_updates):
     new_policy = policies[0]
-    for k in args.k:  # if K > 1, inner_updates = 1, optim = SGD, this is Reptile
+    for k in range(args.k):  # if K > 1, inner_updates = 1, optim = SGD, this is Reptile
         new_policy = inner_train(new_policy)
     type_observations = []
     # Evaluate
