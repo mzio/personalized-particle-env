@@ -29,7 +29,7 @@ parser.add_argument('--lr', default=1e-2, type=int,
 parser.add_argument('--gamma', type=float, default=0.99, metavar='G',
                     help='discount factor (default: 0.99)')
 parser.add_argument('--inner_updates', type=int, default=1,
-                    help='Number of episodes per rollout')
+                    help='Number of rollouts per batch')
 parser.add_argument('-d', '--debug', action='store_true',
                     help='Print for debugging')
 parser.add_argument('-p', '--personalization',
@@ -170,4 +170,14 @@ with open(args.save_results, 'w') as f:
 #           "the last episode runs to {} time steps!".format(running_reward, t))
 #     break
 
-# python main.py --num_agents 10 --personalization 'variance' --load_agents 'agents_many_10-1' --seed 42 --specific_agents 'PersonalAgent-0'  --model 'Reinforce' --inner_updates 1 --log_interval 1 --episode_len 1000 --num_episodes 1000 --save_results './results/results-r-1.csv' --save_model './trained_models/model-r-1.pt'
+# python main.py --num_agents 10 --personalization 'variance' --load_agents 'agents_many_10-1' --seed 42 --specific_agents 'PersonalAgent-0'  --model 'Reinforce' --inner_updates 10 --log_interval 1 --episode_len 1000 --num_episodes 1000 --save_results './results/results-r-1.csv' --save_model './trained_models/model-r-1.pt'
+
+
+# python main.py --num_agents 10 --personalization 'variance' --load_agents 'agents_many_10-1' --seed 42 --specific_agents 'PersonalAgent-0' --model 'Reinforce' --inner_updates 10 --log_interval 1 --episode_len 1000 --num_episodes 1000 --save_results './results/results-r-1.csv' --save_model './trained_models/model-r-1.pt'
+
+
+# python main.py --scenario simple.py --num_episodes 50 --p 'variance' --seed 0 --save_results './results/results_ppe_simple_reinforce_9-4.csv' --save_model './trained_models/model_ppe_simple_reinforce_9-4.pt' --load_agents 'agents-clustered' --specific_agents 'PersonalAgent-0' --model 'Reinforce' --inner_updates 5 --log_interval 1 --episode_len 100
+
+
+# Joint Training
+# python main.py --scenario simple.py --num_episodes 1000 -p 'cluster' --seed 0 --load_agents 'agents-clustered-p'  --model 'Reinforce' --inner_updates 10 --log_interval 1 --episode_len 100 --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-2 PersonalAgent-3 PersonalAgent-4 PersonalAgent-5 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-11 PersonalAgent-12 PersonalAgent-15'
