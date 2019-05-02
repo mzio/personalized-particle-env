@@ -120,7 +120,7 @@ episode_ix = 0
 def inner_train(policy, env=env):
     new_policy = model(0, env.observation_space[0].shape[0],
                        env.action_space[0].n)
-    new_policy.load_state_dict(torch.load(policy.state_dict()))
+    new_policy.load_state_dict(policy.state_dict())
     # new_policy.rewards = policy.rewards
     # new_policy.finish_episode(optimizer, args.gamma)
     for i in range(args.inner_updates):  # ex. 10, then do 10 times, update the average
@@ -136,7 +136,7 @@ def run_episode(policy, env=env, obs=None, train=True):  # Call this K times
     while t < args.episode_len:
         ep_reward = 0
         act_n = []
-        for i, p in enumerate(policies):
+        for i, _ in enumerate(policies):
             act_n.append(policy.action(obs_n[i]))
         obs_n, reward_n, done_n, _ = env.step(act_n)
         policy.rewards.append(reward_n[0])
