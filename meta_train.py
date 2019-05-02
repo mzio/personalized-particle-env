@@ -16,6 +16,7 @@ import argparse
 
 import torch
 import torch.optim as optim
+from torch.autograd import Variable
 
 import particles
 import particles.scenarios as scenarios
@@ -109,7 +110,7 @@ else:
     raise NotImplementedError
 
 scenario.sample_task = True  # Start off true
-obs_n = env.reset()
+
 running_reward = -1.0
 
 total_timesteps = 0
@@ -123,27 +124,22 @@ def inner_train(policy, env=env):
     print('Input policy rewards: {}'.format(policy.rewards))
     print('Input policy losses: {}'.format(policy.policy_losses))
     # new_policy.rewards = policy.rewards
-    # new_
     # new_policy.finish_episode(optimizer, args.gamma)
     for i in range(args.inner_updates):  # ex. 10, then do 10 times, update the average
         run_episode(new_policy)  # if 1 inner update, == SGD,
         env.reset()
-    # print('Losses: {}'.format(new_policy.policy_losses))
     new_policy.update(optimizer, args.inner_updates)
     return new_policy
 
 
 def run_episode(policy, env=env, obs=None, train=True):  # Call this K times
     t = 0
-    print(t)
-    print(env)
     obs_n = env.reset()
     while t < args.episode_len:
         ep_reward = 0
         act_n = []
         for i, _ in enumerate(policies):
             act_n.append(policy.action(obs_n[i]))
-
         obs_n, reward_n, done_n, _ = env.step(act_n)
         policy.rewards.append(reward_n[0])
         ep_reward += reward_n[0]
@@ -190,4 +186,4 @@ torch.save(policies[0].state_dict(), args.save_model)
 
 # python main.py --num_episodes 100 --p 'cluster' --seed 1 --save_results './results/results_ppe_simple_reinforce_sgd_5-1.csv' --save_model './trained_models/model_ppe_simple_reinforce_sgd_5-1.pt' --load_agents 'agents-clustered' --specific_agents 'PersonalAgent-5' --model 'Reinforce' --inner_updates 1 --log_interval 1 --episode_len 100
 
-# python meta_train.py --num_episodes 100 --seed 1 --save_results './results/results_ppe-joint_reptile-0.csv' --save_model './trained_models/model_ppe-joint_reptile-0.pt' --load_agents 'agents-clustered-p' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-2 PersonalAgent-3 PersonalAgent-4 PersonalAgent-5 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-11 PersonalAgent-12 PersonalAgent-15' --model 'Reinforce' --inner_updates 1 --k 1 --log_interval 1 --episode_len 100
+# python meta_train.py --num_episodes 100 --seed 1 --save_results './results/results_ppe-joint_reptile-0.csv' --save_model './trained_models/model_ppe-joint_reptile-0.pt' --load_agents 'agents-clustered-p' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-2 PersonalAgent-3 PersonalAgent-4 PersonalAgent-5 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-11 PersonalAgent-12 PersonalAgent-15' --model 'Reinforce' --inner_updates 1 --k 1 --log_interval 1 --episode_len 100 --optimizer 'SGD'
