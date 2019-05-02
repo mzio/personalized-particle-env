@@ -1,12 +1,21 @@
+from os import listdir
+from os.path import isfile, join
+
 # Support agents
 agents = 'PersonalAgent-6 PersonalAgent-7 PersonalAgent-13 PersonalAgent-14 PersonalAgent-16 PersonalAgent-17 PersonalAgent-18 PersonalAgent-19 PersonalAgent-20 PersonalAgent-21 PersonalAgent-22 PersonalAgent-23'
 
-for model_ix in range(5):
+# Get all trained models in specified path
+fpath = './trained_models'
+
+trained_models = [join(fpath, f) for f in listdir(
+    fpath) if (isfile(join(fpath, f))) and ('.pt' in f)]
+
+for model in trained_models:
+    model_name = model.split('./trained_models/')[-1]
     for i in range(5):
-        fname = './run_scripts_eval/ppe-joint_actual_adam_single-eval-model_{}-{}.sh'.format(
-            model_ix, i)
-        job_id = 'ppe-joint_actual_adam_single-eval-model_{}-{}'.format(model_ix, i)
-        model = 'model_ppe-joint_actual_adam_single-{}.pt'.format(model_ix)
+        fname = './run_scripts/ppe_eval-{}-{}.sh'.format(
+            model_name, i)
+        job_id = 'ppe_eval-{}-{}'.format(model_name, i)
         with open(fname, 'w') as rsh:
             rsh.write('''\
 #!/bin/bash
@@ -36,4 +45,4 @@ python meta_evaluate.py \
 --log_interval 1 \
 --episode_len 100 \
 --trained_model '{}' 
-'''.format(job_id, job_id, job_id, i, job_id, job_id, agents, model))
+'''.format(job_id, job_id, job_id, i, job_id, job_id, agents, model_name))
