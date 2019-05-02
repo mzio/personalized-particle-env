@@ -5,7 +5,7 @@ Argument guide
 * K > 1, inner_updates = 1, optim = SGD -> Reptile
 * K = 1, inner_updates = 10, optim = Adam -> Adam Joint  
 * K = 1, inner_updates = 1, optim = SGD -> Reptile Joint  
-* K = 1, inner_updates = 1, optim = Adam -> 
+* K = 1, inner_updates = 1, optim = Adam -> Adam subjoint?
 
 """
 
@@ -31,6 +31,8 @@ parser.add_argument('-s', '--scenario', default='meta_simple.py',
 parser.add_argument(
     '--model', default='Reinforce')
 parser.add_argument('--num_agents', default=1, type=int)
+parser.add_argument('-p', '--personalization', default='cluster',
+                    help='Personalization setup: "variance", "remap", "cluster", "none" supported')
 parser.add_argument('--load_agents', default='')
 parser.add_argument(
     '--save_agents', default='agents-0.json')
@@ -73,7 +75,7 @@ else:
 
 
 assert args.load_agents != ''  # Need to load agents
-assert args.specific != ''    # Need to specify support models
+assert args.specific_agents != ''    # Need to specify support models
 
 load_agents = './particles/configs/' + args.load_agents + '.json'
 support_agents = args.specific_agents.split(' ')
@@ -177,4 +179,6 @@ torch.save(policies[0].state_dict(), args.save_model)
 
 # python main.py --num_agents 10 --personalization 'variance' --load_agents 'agents_many_10-1' --seed 42 --specific_agents 'PersonalAgent-0' --model 'Reinforce' --inner_updates 10 --log_interval 1 --episode_len 1000 --num_episodes 1000 --save_results './results/results-r-1.csv' --save_model './trained_models/model-r-1.pt'
 
-# python main.py --scenario simple.py --num_episodes 100 --p 'variance' --seed 1 --save_results './results/results_ppe_simple_reinforce_sgd_5-1.csv' --save_model './trained_models/model_ppe_simple_reinforce_sgd_5-1.pt' --load_agents 'agents-clustered' --specific_agents 'PersonalAgent-5' --model 'Reinforce' --inner_updates 1 --log_interval 1 --episode_len 100
+# python main.py --num_episodes 100 --p 'cluster' --seed 1 --save_results './results/results_ppe_simple_reinforce_sgd_5-1.csv' --save_model './trained_models/model_ppe_simple_reinforce_sgd_5-1.pt' --load_agents 'agents-clustered' --specific_agents 'PersonalAgent-5' --model 'Reinforce' --inner_updates 1 --log_interval 1 --episode_len 100
+
+# python meta_train.py --num_episodes 100 --seed 1 --save_results './results/results_ppe-joint_reptile-0.csv' --save_model './trained_models/model_ppe-joint_reptile-0.pt' --load_agents 'agents-clustered-p' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-2 PersonalAgent-3 PersonalAgent-4 PersonalAgent-5 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-11 PersonalAgent-12 PersonalAgent-15' --model 'Reinforce' --inner_updates 1 --k 1 --log_interval 1 --episode_len 100
