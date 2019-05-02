@@ -121,8 +121,8 @@ def inner_train(policy, env=env):
     new_policy = model(0, env.observation_space[0].shape[0],
                        env.action_space[0].n)
     new_policy.load_state_dict(policy.state_dict())
-    print('Input policy rewards: {}'.format(policy.rewards))
-    print('Input policy losses: {}'.format(policy.policy_losses))
+    # print('Input policy rewards: {}'.format(policy.rewards))
+    # print('Input policy losses: {}'.format(policy.policy_losses))
     # new_policy.rewards = policy.rewards
     # new_policy.finish_episode(optimizer, args.gamma)
     for i in range(args.inner_updates):  # ex. 10, then do 10 times, update the average
@@ -148,7 +148,7 @@ def run_episode(policy, env=env, obs=None, train=True):  # Call this K times
         t += 1
     # Want to update the policy after
     if train:
-        print(t)
+        # print(t)
         policy.finish_episode(optimizer, args.gamma)
     else:
         # Return reward
