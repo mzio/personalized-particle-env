@@ -12,6 +12,7 @@ from particles.environment import PersonalAgentEnv
 
 from models.reinforce import Reinforce
 from models.actor_critic import ActorCritic
+from models.bandit import ThompsonSampler
 
 parser = argparse.ArgumentParser(description=None)
 
@@ -54,6 +55,8 @@ if args.model == 'ActorCritic':
     model = ActorCritic
 elif args.model == 'Reinforce':
     model = Reinforce
+elif args.model == 'ThompsonSampler':
+    model = ThompsonSampler
 else:
     raise NotImplementedError
 
@@ -88,7 +91,7 @@ if args.render:
 policies = [model(i, env.observation_space[i].shape[0],
                   env.action_space[0].n) for i in range(env.n)]
 
-optimizer = optim.Adam(policies[0].parameters(), lr=args.lr)
+optimizer = optim.SGD(policies[0].parameters(), lr=args.lr)
 
 
 obs_n = env.reset()

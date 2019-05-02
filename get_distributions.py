@@ -26,8 +26,8 @@ parser.add_argument('--seed', default=42, type=int,
                     help='Randomization seed')
 parser.add_argument('--trained_models', default='./trained_models/',
                     help='Trained model name for visualization')
-parser.add_argument('--state_sampler', default='./episode_kdes.p')
-parser.add_argument('--num_states', default=100, type=int,
+parser.add_argument('--state_sampler', default='./episode_states.p')
+parser.add_argument('--num_states', default=10, type=int,
                     help='Number of states to collect')
 parser.add_argument('--save_results', default='divergences.p')
 args = parser.parse_args()
@@ -40,6 +40,12 @@ checkpoints = [0, 10, 20, 30, 40, 50]  # Multiply by 10 for actual episode
 
 
 def check_valid_model(model):
+    # if ('2_cp_' in model) or ('3_cp_' in model) or ('4_cp_' in model):
+    #    return False
+    if '1_cp_' not in model:
+        return False
+    if '_cp_' not in model:
+        return False
     num = int(model.split('_cp_')[-1].split('.')[0])
     if num in checkpoints:
         return True
@@ -50,16 +56,20 @@ def check_valid_model(model):
 trained_models = [join(fpath, f) for f in listdir(
     fpath) if (isfile(join(fpath, f))) and ('.pt' in f) and check_valid_model(f)]
 
+# print(trained_models)
 
 # Load state samplers
 with open(args.state_sampler, 'rb') as f:
     state_kdes = pickle.load(f)
 
+print('### Samplers loaded!')
+
 models = []
 
 # Generate sample states
 for ix in range(len(checkpoints)):
-    states = state_kdes[0].sample(100, random_state=0)
+    print('### Sampling states for checkpoint {}...'.format(checkpoints[ix]))
+    states = state_kdes[0]
     for model in trained_models:
         # Filter for same checkpoint, so go through reps and diff types at same time
         if int(model.split('_cp_')[-1].split('.')[0]) == checkpoints[ix]:
@@ -68,6 +78,7 @@ for ix in range(len(checkpoints)):
             agent_type = int(name.split('_')[-1].split('-')[0])
             rep = int(name.split('_')[-1].split('-')[1])
 
+            print('### Model {} loaded!'.format(name))
             policy = Reinforce(None, 2, 5)
             policy.load_state_dict(torch.load(model))
             # Calculate categorical action distributions
@@ -80,16 +91,18 @@ for ix in range(len(checkpoints)):
 
 pairwise_dists = []
 
+print('### Calculating pairwise divergences...')
+
 for m1 in models:
     for m2 in models:
         sym_kls = []
         kls = []
         for x in range(len(m1['state_p'])):  # get symmetrized KL
             sym_kl = (kl.kl_divergence(m1['state_p'][x], m2['state_p'][x]) +
-                      kl.kl_divergence(m2['state_p'][x], m1['state_p'][x]))
-            kl = kl.kl_divergence(m1['state_p'][x], m2['state_p'][x])
+                      kl.kl_divergence(m2['state_p'][x], m1['state_p'][x])) / 2.
+            kl_ = kl.kl_divergence(m1['state_p'][x], m2['state_p'][x])
             sym_kls.append(sym_kl)
-            kls.append(kl)
+            kls.append(kl_)
         pairwise_dists.append({'kl_symmetric': sym_kls,
                                'kl': kls,
                                'p': m1['name'],
@@ -98,9 +111,9 @@ for m1 in models:
                                'q': m2['name'],
                                'q_type': m2['type'],
                                'q_rep': m2['rep']})
-
-with open(args.save_results, 'wb') as f:
-    pickle.dump(pairwise_dists, file=f)
+        with open(args.save_results, 'wb') as f:
+            print('Saving file to {}...'.format(args.save_results))
+            pickle.dump(pairwise_dists, file=f)
 
 
 # python get_distributions.py --num_states 100 --trained_models './trained_models/'
