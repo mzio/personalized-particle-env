@@ -26,7 +26,7 @@ parser.add_argument('--seed', default=42, type=int,
                     help='Randomization seed')
 parser.add_argument('--trained_models', default='./trained_models/',
                     help='Trained model name for visualization')
-parser.add_argument('--state_sampler', default='./episode_kdes.p')
+parser.add_argument('--state_sampler', default='./episode_states.p')
 parser.add_argument('--num_states', default=100, type=int,
                     help='Number of states to collect')
 parser.add_argument('--save_results', default='divergences.p')
@@ -40,6 +40,8 @@ checkpoints = [0, 10, 20, 30, 40, 50]  # Multiply by 10 for actual episode
 
 
 def check_valid_model(model):
+    if '_cp_' not in model:
+        return False
     num = int(model.split('_cp_')[-1].split('.')[0])
     if num in checkpoints:
         return True
@@ -59,7 +61,8 @@ models = []
 
 # Generate sample states
 for ix in range(len(checkpoints)):
-    states = state_kdes[0].sample(100, random_state=0)
+    # For variant where we just load the already generated data
+    states = state_kdes[ix]
     for model in trained_models:
         # Filter for same checkpoint, so go through reps and diff types at same time
         if int(model.split('_cp_')[-1].split('.')[0]) == checkpoints[ix]:

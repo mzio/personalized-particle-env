@@ -108,7 +108,7 @@ class Population(object):
                     agent = Agent(name=a['name'], mapping=a['mapping'])
                     agent.color = a['color']
                     agent.cluster = a['cluster']
-                    # agent.mapping = a['mapping_angles']
+                    agent.mapping = a['mapping_angles']
                     self.agents.append(agent)
         else:
             assert self.num_agents is not None
@@ -118,10 +118,14 @@ class Population(object):
             self.cluster_remaps = [[-1., 0.], [1., 0.], [0., -1.], [0., 1.]]
             self.colors = [[1., 0, 0], [1, 1, 0], [
                 0, 1, 0], [0, 1, 1], [0, 0, 1], [1, 0, 1]]
+            c = 0  # Used for clustering
+            num_groups = self.num_agents / num_clusters
             for i in range(self.num_agents):
                 if personalization == 'cluster':
                     assert num_clusters is not None
-                    c = i % num_clusters  # assign clusters
+                    if i % num_groups == 0:
+                        c += 1
+                    # c = i % num_clusters  # assign clusters (should change this so easier to keep track of)
                     mapping = self.get_personalization(
                         seed=i, kind='cluster', cluster=c)
                 else:
