@@ -63,9 +63,10 @@ class MetaLearner(object):
         policy.finish_episode(self.optimizer, self.gamma)
         return observations, ep_reward
 
-    def adapt(self):
+    def adapt(self, policy, optimizer, K):
         # After sampling multiple times, get updates
-        self.current_policy.update(self.optimizer, self.K)
+        policy.update(optimizer, K)
+        # self.current_policy.update(self.optimizer, self.K)
 
     def train(self, K, iter_num):
         """
@@ -75,7 +76,8 @@ class MetaLearner(object):
         if K > 1:  # K + 1 shots overall?
             for _ in range(K):
                 self.sample(self.current_policy)
-            self.adapt()  # policy.update(optimizer, K)
+            self.adapt(self.current_policy, self.optimizer,
+                       self.K)  # policy.update(optimizer, K)
             # new trajectory with updated policy
             trajectory, ep_reward = self.sample(self.current_policy)
             kde = self.calculate_KDE(trajectory)
@@ -83,6 +85,7 @@ class MetaLearner(object):
                       'policy': self.current_policy,
                       'kde': kde,
                       'reward': ep_reward,
+                      'optimizer': self.optimizer,
                       'update': iter_num}
             try:
                 self.memory[iter_num].append(update)  # could really be a list
@@ -91,9 +94,6 @@ class MetaLearner(object):
         else:
             trajectory = self.sample(policy)
         return trajectory
-
-    def act(self):
-        """Call this for every new episode"""
 
     def update(self):
         """Update and find nearest neighbor from before to initialize at"""
@@ -151,7 +151,7 @@ class MetaLearner(object):
     def get_updated_policies(self, K, policy, trajectory, iteration,
                              sample_num=100):
         closest_ixs = self.calculate_KNN(
-            K, policy, trajectoy, iteration, sample_num)
+            K, policy, trajectory, iteration, sample_num)
         policies = []
         new_iteration = len(self.memory)
         updated_policies = self.memory[new_iteration]
@@ -168,7 +168,6 @@ class MetaLearner(object):
         for i in iterations:
             saved_policies = self.memory[i]
             # Load relevant saved experiences
-            
             trajectories = []
             policies = []
             kdes = []
@@ -206,7 +205,8 @@ class MetaLearner(object):
 
                 for a in range(num_policies):
                     for b in range(num_policies):
-                        sample_divergence[a][b] = self.calculate_JSD(probs_n[a].squeeze(), probs_n[b].squeeze())
+                        sample_divergence[a][b] = self.calculate_JSD(
+                            probs_n[a].squeeze(), probs_n[b].squeeze())
 
                 sample_prob = np.exp(kde_all.score(sample.reshape(1, -1)))
                 sample_divergences.append(sample_divergence * sample_prob)
