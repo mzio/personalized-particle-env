@@ -102,18 +102,18 @@ for agent in support_agents:  # Train pre-trained models first
 
     # Create new policy for updating
     metalearner.current_policy = metalearner.policy(
-        0, self.obs_shape, self.action_shape)
+        0, metalearner.obs_shape, metalearner.action_shape)
 
-    optimizer = optim.Adam(metalearner.current_policy, lr=args.lr)
+    optimizer = optim.Adam(metalearner.current_policy.parameters(), lr=args.lr)
     metalearner.optimizer = optimizer
 
-    for n in args.num_iters:  # For every training iteration, save trajectory and get updates
+    for n in range(args.num_iters):  # For every training iteration, save trajectory and get updates
         metalearner.train(args.k, n + 1)  # +1 because save after an update
 
     scenario.sample_task = True  # Now change the entity type
 
 # Model should have lists of trajectories and policies now, indexed by training iteration
-total_iters = np.array(range(args.num_iters)) + 1
+# total_iters = np.array(range(args.num_iters)) + 1
 # only get first and last updates?
 metalearner.calculate_distances(iterations=[1, args.num_iters])
 # Initially have these. Should we calculate divergences between all pretrained models?
@@ -130,8 +130,7 @@ info = [['Timestep', 'Episode', 'State_x_pos', 'State_y_pos',
 for agent in eval_agents:
     scenario = scenarios.load('simple.py').Scenario(
         kind=args.personalization, num_agents=args.num_agents, seed=args.seed,
-        load_agents=load_agents, save_agents=save_agents,
-        specific_agents=agent)
+        load_agents=load_agents, specific_agents=agent)
     # create world
     world = scenario.make_world()
     world.episode_len = args.episode_len
@@ -169,7 +168,7 @@ for agent in eval_agents:
             episode_ix += 1
 
             policies = metalearner.get_updated_policies(
-                self, args.k, trajectory, 1)
+                policy, args.k, trajectory, 1)
             rewards = [policy['reward'] for policy in policies]
             # Just pick highest reward policy for now
             policy_ix = np.array(rewards).argsort[0]
@@ -242,8 +241,5 @@ with open(meta_results_fname, 'w') as f:
 
 # python meta_main.py --num_iters 50 --k 10 --seed 1 --load_agents 'agents-clustered-p' --num_eval_iters 100 --model 'Reinforce' --log_interval 1 --episode_len 100 --optimizer 'Adam' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-3 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-13 PersonalAgent-15 PersonalAgent-16 PersonalAgent-18 PersonalAgent-21 PersonalAgent-22' --eval_agents 'PersonalAgent-2 PersonalAgent-4 PersonalAgent-5 PersonalAgent-6 PersonalAgent-7 PersonalAgent-11 PersonalAgent-12 PersonalAgent-14 PersonalAgent-17 PersonalAgent-19 PersonalAgent-20 PersonalAgent-23'
 
-# python main.py --num_agents 10 --personalization 'variance' --load_agents 'agents_many_10-1' --seed 42 --specific_agents 'PersonalAgent-0' --model 'Reinforce' --inner_updates 10 --log_interval 1 --episode_len 1000 --num_episodes 1000 --save_results './results/results-r-1.csv' --save_model './trained_models/model-r-1.pt'
 
-# python main.py --num_episodes 100 --p 'cluster' --seed 1 --save_results './results/results_ppe_simple_reinforce_sgd_5-1.csv' --save_model './trained_models/model_ppe_simple_reinforce_sgd_5-1.pt' --load_agents 'agents-clustered' --specific_agents 'PersonalAgent-5' --model 'Reinforce' --inner_updates 1 --log_interval 1 --episode_len 100
 
-# python meta_train.py --num_episodes 100 --seed 1 --save_results './results/results_ppe-joint_reptile-0.csv' --save_model './trained_models/model_ppe-joint_reptile-0.pt' --load_agents 'agents-clustered-p' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-2 PersonalAgent-3 PersonalAgent-4 PersonalAgent-5 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-11 PersonalAgent-12 PersonalAgent-15' --model 'Reinforce' --inner_updates 10 --k 1 --log_interval 1 --episode_len 100 --optimizer 'Adam'
