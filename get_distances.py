@@ -48,7 +48,10 @@ def get_kde(states, bw=np.logspace(-1, 1, 20), cv=5):
     return kde
 
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> a519a85a2b9a1cec0bb70108595832b60afb4729
 def sample_kde(kde, num_samples=1000, seed=0):
     sample = kde.sample(num_samples, random_state=seed)
     return sample
