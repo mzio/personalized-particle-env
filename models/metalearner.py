@@ -17,7 +17,7 @@ from scipy.stats import entropy
 class MetaLearner(object):
     def __init__(self, policy, obs_shape, action_shape, K=10, num_iters=100,
                  initialize_size=5, look_back='all', lr=1e-2):
-        self.algo = policy(_, obs_shape, action_shape)
+        self.algo = policy(0, obs_shape, action_shape)
         # Used for initializing new policies
         self.policy = policy
         self.obs_shape = obs_shape
@@ -57,7 +57,7 @@ class MetaLearner(object):
             act_n = []
             act_n.append(policy.action(obs_n[0]))
             obs_n, reward_n, done_n, _ = self.env.step(act_n)
-            policy.rewards.append(reward_n)
+            policy.rewards.append(reward_n[0])
             ep_reward += reward_n[0]
             observations.append(obs_n[0])
         policy.finish_episode(self.optimizer, self.gamma)
@@ -87,7 +87,7 @@ class MetaLearner(object):
             try:
                 self.memory[iter_num].append(update)  # could really be a list
             except:
-                self.memory = [update]
+                self.memory[iter_num] = [update]
         else:
             trajectory = self.sample(policy)
         return trajectory
@@ -133,7 +133,7 @@ class MetaLearner(object):
 
         sample_divergences = []
         for sample in samples:
-            sample_key = '-'.join(list(sample))
+            sample_key = '-'.join(map(str, sample))
             om = self.calculate_occupancy(kde_policy, policy, sample)
             sample_divergence = np.zeros(len(saved_policies))
             for n in range(len(saved_policies)):
@@ -149,10 +149,11 @@ class MetaLearner(object):
         return closest_ixs
 
     def get_updated_policies(self, K, policy, trajectory, iteration,
-                             sample_num=100, new_iteration=len(self.memory) - 1):
+                             sample_num=100):
         closest_ixs = self.calculate_KNN(
             K, policy, trajectoy, iteration, sample_num)
         policies = []
+        new_iteration = len(self.memory)
         updated_policies = self.memory[new_iteration]
         for ix in range(len(updated_policies)):
             if ix in closest_ixs:
@@ -167,12 +168,19 @@ class MetaLearner(object):
         for i in iterations:
             saved_policies = self.memory[i]
             # Load relevant saved experiences
-            trajectories = [p['trajectory'] for p in saved_policies]
-            policies = [p['policy'] for p in saved_policies]
-            kdes = [p['kde'] for p in saved_policies]
+            
+            trajectories = []
+            policies = []
+            kdes = []
 
+            for p in saved_policies:
+                trajectories.extend(p['trajectory'])
+                policies.append(p['policy'])
+                kdes.append(p['kde'])
+
+            print(trajectories)
             num_policies = len(policies)
-
+            
             kde_all = self.calculate_KDE(trajectories)
             samples = self.sample_kde(kde_all, 100)
 
@@ -189,7 +197,7 @@ class MetaLearner(object):
                         kdes[ix], policies[ix], sample)
                     probs_n.append(occupancy_measure)
                     # Save occupancy measures for comparison later
-                    om_stat = {'-'.join(list(sample)): occupancy_measure}
+                    om_stat = {'-'.join(map(str, sample)): occupancy_measure}
 
                     try:
                         self.meta_occupancies[ix].append(om_stat)
@@ -198,7 +206,7 @@ class MetaLearner(object):
 
                 for a in range(num_policies):
                     for b in range(num_policies):
-                        sample_divergence[a][b] = self.calculate_JSD()
+                        sample_divergence[a][b] = self.calculate_JSD(probs_n[a].squeeze(), probs_n[b].squeeze())
 
                 sample_prob = np.exp(kde_all.score(sample.reshape(1, -1)))
                 sample_divergences.append(sample_divergence * sample_prob)
