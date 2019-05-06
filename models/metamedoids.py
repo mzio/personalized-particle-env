@@ -41,7 +41,9 @@ class MetaMedoids(object):
         self.current_policy = None
         self.meta_divergences = {}  # Also start at 1 (should match memory)
         self.meta_samples = {}
-        self.meta_occupancies = {}
+        self.meta_occupancies = {}  
+
+        self.medoid_policies = None  
 
     def update_meta_property(self, property, item, iteration):
         """Due to indexing, helper method to help update meta properties"""
@@ -69,7 +71,7 @@ class MetaMedoids(object):
         policy.update(optimizer, K)
         # self.current_policy.update(self.optimizer, self.K)
 
-    def train(self, K, iter_num):
+    def train(self, K, iter_num, save=True):
         """
         Run k updates (K or 1), adapt, and run another, saving this trajectory and the adapted model
         :iter_num: the current iteration (used for indexing)
@@ -88,10 +90,11 @@ class MetaMedoids(object):
                       'reward': ep_reward,
                       'optimizer': self.optimizer,
                       'update': iter_num}
-            try:
-                self.memory[iter_num].append(update)  # could really be a list
-            except:
-                self.memory[iter_num] = [update]
+            if save:
+                try:
+                    self.memory[iter_num].append(update)  # could really be a list
+                except:
+                    self.memory[iter_num] = [update]
         else:
             trajectory = self.sample(policy)
         return trajectory, ep_reward
@@ -228,7 +231,8 @@ class MetaMedoids(object):
                 medoid_policies.append(policy)
         self.medoid_policies = medoid_policies
         # Save medoid policies for next round
-        self.memory[iteration + 1] = medoid_policies
+        self.memory[iteration + 1] = []
+        self.memory[iteration + 1].extend(medoid_policies)
         return medoid_policies
 
     def calculate_medoids(self, distances, k=6):
