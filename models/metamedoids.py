@@ -250,12 +250,12 @@ class MetaMedoids(object):
         # Until the medoids stop updating, do the following:
         while not ((old_medoids == curr_medoids).all()):
             # Assign each point to cluster with closest medoid.
-            clusters = assign_points_to_clusters(curr_medoids, distances)
+            clusters = self.assign_points_to_clusters(curr_medoids, distances)
 
             # Update cluster medoids to be lowest cost point.
             for curr_medoid in curr_medoids:
                 cluster = np.where(clusters == curr_medoid)[0]
-                new_medoids[curr_medoids == curr_medoid] = compute_new_medoid(
+                new_medoids[curr_medoids == curr_medoid] = self.compute_new_medoid(
                     cluster, distances)
 
             old_medoids[:] = curr_medoids[:]
