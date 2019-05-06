@@ -203,12 +203,12 @@ class MetaLearner(object):
                     try:
                         self.meta_occupancies[i][ix][key] = occupancy_measure
                     except:
-                        pass
-                    try:
-                        self.meta_occupancies[i][ix] = {key: occupancy_measure}
-                    except:
-                        self.meta_occupancies[i] = {
-                            ix: {key: occupancy_measure}}
+                        try:
+                            self.meta_occupancies[i][ix] = {
+                                key: occupancy_measure}
+                        except:
+                            self.meta_occupancies[i] = {
+                                ix: {key: occupancy_measure}}
 
                 for a in range(num_policies):
                     for b in range(num_policies):

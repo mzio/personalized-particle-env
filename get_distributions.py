@@ -16,6 +16,7 @@ from particles.environment import PersonalAgentEnv
 
 from os import listdir
 from os.path import isfile, join
+from scipy.stats import gaussian_kde
 
 import pickle
 
@@ -90,9 +91,9 @@ for m1 in models:
         for x in range(len(m1['state_p'])):  # get symmetrized KL
             sym_kl = (kl.kl_divergence(m1['state_p'][x], m2['state_p'][x]) +
                       kl.kl_divergence(m2['state_p'][x], m1['state_p'][x]))
-            kl = kl.kl_divergence(m1['state_p'][x], m2['state_p'][x])
+            kl_ = kl.kl_divergence(m1['state_p'][x], m2['state_p'][x])
             sym_kls.append(sym_kl)
-            kls.append(kl)
+            kls.append(kl_)
         pairwise_dists.append({'kl_symmetric': sym_kls,
                                'kl': kls,
                                'p': m1['name'],

@@ -13,7 +13,7 @@ eps = np.finfo(np.float32).eps.item()
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, env, agent_index, obs_shape, action_shape):
+    def __init__(self, agent_index, obs_shape, action_shape):
         super(ActorCritic, self).__init__()
         self.affine1 = nn.Linear(obs_shape, 128)
         self.action_head = nn.Linear(128, action_shape)

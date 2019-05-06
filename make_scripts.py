@@ -1,4 +1,4 @@
-for p in range(11):
+for p in range(5):
     name = 'PersonalAgent-' + str(p) if p < 10 else ''
     for i in range(5):
         fname = './run_scripts/ppe_simple_reinforce_{}-{}.sh'.format(p, i)
