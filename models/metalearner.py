@@ -137,7 +137,10 @@ class MetaLearner(object):
             om = self.calculate_occupancy(kde_policy, policy, sample)
             sample_divergence = np.zeros(len(saved_policies))
             for n in range(len(saved_policies)):
-                saved_om = self.meta_occupancies[iteration][sample_key]
+                print('iter: {}'.format(iteration))
+                print('n: {}'.format(n))
+                print(self.meta_occupancies)
+                saved_om = self.meta_occupancies[iteration][n][sample_key]
                 jsd = self.calculate_JSD(om.squeeze(), saved_om.squeeze())
                 sample_divergence[n] = jsd
 
@@ -196,12 +199,18 @@ class MetaLearner(object):
                         kdes[ix], policies[ix], sample)
                     probs_n.append(occupancy_measure)
                     # Save occupancy measures for comparison later
-                    om_stat = {'-'.join(map(str, sample)): occupancy_measure}
+                    key = '-'.join(map(str, sample))
+                    # om_stat = {'-'.join(map(str, sample)): occupancy_measure}
 
                     try:
-                        self.meta_occupancies[ix].append(om_stat)
+                        self.meta_occupancies[i][ix][key] = occupancy_measure
                     except:
-                        self.meta_occupancies[ix] = [om_stat]
+                        pass
+                    try:
+                        self.meta_occupancies[i][ix] = {key: occupancy_measure}
+                    except:
+                        self.meta_occupancies[i] = {
+                            ix: {key: occupancy_measure}}
 
                 for a in range(num_policies):
                     for b in range(num_policies):
