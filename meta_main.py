@@ -55,11 +55,15 @@ parser.add_argument('--save_results', default='./results/results.csv')
 parser.add_argument('--save_model', default='./trained_models/model.pt')
 parser.add_argument('--k', default=10, type=int,
                     help='Number of shots allowed')
+parser.add_argument('--batch_size', default=10, type=int,
+                    help='Batch size during regular updates')
 parser.add_argument('--num_iters', default=10, type=int,
                     help='Number of meta-iterations')
 parser.add_argument('--num_eval_iters', default=100, type=int,
                     help='Number of evaluation iterations')
 parser.add_argument('--optimizer', default='Adam')
+parser.add_argument('-ro', '--replace_optimizer', action='store_true',
+                    help='If true, replace optimizer when loading model')
 args = parser.parse_args()
 
 # Need to specify support models and agent configuration
@@ -84,8 +88,9 @@ metalearner.episode_len = args.episode_len
 
 # META-TRAINING #
 # Pick a random subset to train?
-# np.random.seed(args.seed)
-# np.random.choice(support_agents, 6)  # pick 6 to train randomly
+np.random.seed(args.seed)
+support_agents = np.random.choice(
+    support_agents, 6)  # pick 6 to train randomly
 
 for agent in support_agents:  # Train pre-trained models first
     scenario = scenarios.load(args.scenario).Scenario(
@@ -115,7 +120,7 @@ for agent in support_agents:  # Train pre-trained models first
     for n in range(args.num_iters):
         metalearner.train(args.k, n + 1)  # +1 because save after an update
 
-    scenario.sample_task = True  # Now change the entity type
+    scenario.sample_task = True  # Now change the entity type - doesn't actually matter
 
 # Model should have lists of trajectories and policies now, indexed by training iteration
 total_iters = np.array(range(args.num_iters)) + 1
@@ -155,40 +160,45 @@ for agent in eval_agents:
     total_timesteps = 0
     episode_ix = 0
 
+    metalearner.env = env
+
     # num_episodes = int(args.num_episodes / args.k)
 
     for n in range(args.num_eval_iters):  # 100? Number of updates
         if n == 0:
             policy = model(0, 2, 5)  # Initiate new policy
             optimizer = optim.Adam(policy.parameters(), lr=args.lr)
-            for update in range(args.k):
+            for update in range(10):
                 metalearner.sample(policy)
-            metalearner.adapt(policy, optimizer, args.k)
+            metalearner.adapt(policy, optimizer, 10)
             trajectory, ep_reward = metalearner.sample(
                 policy)  # Get new trajectory and ep_reward
-            total_timesteps += args.k * args.episode_len
+            total_timesteps += 10 * args.episode_len
 
             meta_info.append([total_timesteps, episode_ix, ep_reward, agent])
 
             episode_ix += 1
 
             policies = metalearner.get_updated_policies(
-                args.k, policy, trajectory, 1)
+                4, policy, trajectory, 1)
             rewards = [policy['reward'] for policy in policies]
             # Just pick highest reward policy for now
-            policy_ix = np.array(rewards).argsort[0]
+            policy_ix = np.array(rewards).argsort()[0]
             policy = policies[policy_ix]['policy']
-            optimizer = policies[policy_ix]['optimizer']
+            if args.replace_optimizer:
+                optimizer = optim.Adam(policy.parameters(), lr=args.lr)
+            else:
+                optimizer = policies[policy_ix]['optimizer']
 
             env.reset()
         else:
             # After this fast adaptation stage, revert to VPG
-            for update in range(args.k):
+            for update in range(args.batch_size):
                 t = 0
                 while t < args.episode_len:
                     ep_reward = 0
                     act_n = []
-                    act_n.append(policy.action(obs_n[i]))
+                    act_n.append(policy.action(obs_n[0]))
                     # step environment
                     obs_n, reward_n, done_n, _ = env.step(act_n)
                     if args.debug:
@@ -215,7 +225,7 @@ for agent in eval_agents:
                     if total_timesteps % args.log_interval == 0:
                         info.append([total_timesteps, episode_ix, obs_n[0][0], obs_n[0][1],
                                      act_n[0], relative_reward, ep_reward, agent])
-                    if done_n[i] is True:
+                    if done_n[0] is True:
                         continue
                 policy.finish_episode(optimizer, args.gamma)
                 episode_ix += 1
@@ -225,8 +235,8 @@ for agent in eval_agents:
                 env.reset()
                 # info.append([total_timesteps, n, obs_n[0][0], obs_n[0]
                 #              [1], act_n[0], relative_reward, ep_reward])
-            running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
-            policy.update(optimizer, args.inner_updates)
+            # running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
+            policy.update(optimizer, args.batch_size)
             env.reset()
 
     # # Save model and results
@@ -237,14 +247,14 @@ with open(args.save_results, 'w') as f:
     writer = csv.writer(f)
     writer.writerows(info)
 
-meta_results_fname = 'meta_{}'.format(args.save_results)
+meta_results_fname = '{}-meta.csv'.format(args.save_results.split('.csv')[0])
 
 with open(meta_results_fname, 'w') as f:
     writer = csv.writer(f)
     writer.writerows(meta_info)
 
 
-# python meta_main.py --num_iters 30 --k 10 --seed 1 --load_agents 'agents-clustered-p' --num_eval_iters 100 --model 'Reinforce' --log_interval 1 --episode_len 100 --optimizer 'Adam' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-3 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-13 PersonalAgent-15 PersonalAgent-16 PersonalAgent-18 PersonalAgent-21 PersonalAgent-22' --eval_agents 'PersonalAgent-2 PersonalAgent-4 PersonalAgent-5 PersonalAgent-6 PersonalAgent-7 PersonalAgent-11 PersonalAgent-12 PersonalAgent-14 PersonalAgent-17 PersonalAgent-19 PersonalAgent-20 PersonalAgent-23'
+# python meta_main.py --num_iters 10 --k 10 --seed 1 --load_agents 'agents-clustered-p' --num_eval_iters 10 --model 'Reinforce' --log_interval 1 --episode_len 100 --optimizer 'Adam' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-3 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-13 PersonalAgent-15 PersonalAgent-16 PersonalAgent-18 PersonalAgent-21 PersonalAgent-22' --eval_agents 'PersonalAgent-2 PersonalAgent-4 PersonalAgent-5 PersonalAgent-6 PersonalAgent-7 PersonalAgent-11 PersonalAgent-12 PersonalAgent-14 PersonalAgent-17 PersonalAgent-19 PersonalAgent-20 PersonalAgent-23'
 
 # python main.py --num_agents 10 --personalization 'variance' --load_agents 'agents_many_10-1' --seed 42 --specific_agents 'PersonalAgent-0' --model 'Reinforce' --inner_updates 10 --log_interval 1 --episode_len 1000 --num_episodes 1000 --save_results './results/results-r-1.csv' --save_model './trained_models/model-r-1.pt'
 

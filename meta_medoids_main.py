@@ -61,11 +61,13 @@ parser.add_argument('--k', default=10, type=int,
                     help='Number of shots allowed')
 parser.add_argument('--batch_size', default=10, type=int,
                     help='Batch size during regular updates')
-parser.add_argument('--num_iters', default=10, type=int,
+parser.add_argument('--num_iters', default=100, type=int,
                     help='Number of meta-iterations')
 parser.add_argument('--num_eval_iters', default=100, type=int,
                     help='Number of evaluation iterations')
 parser.add_argument('--optimizer', default='Adam')
+parser.add_argument('-ro', '--replace_optimizer', action='store_true',
+                    help='If true, replace optimizer when loading model')
 args = parser.parse_args()
 
 # Need to specify support models and agent configuration
@@ -92,7 +94,7 @@ metalearner.episode_len = args.episode_len
 
 scenario = scenarios.load(args.scenario).Scenario(
     kind=args.personalization, num_agents=args.num_agents, seed=args.seed,
-    load_agents=load_agents, specific_agents=specific_agents)
+    load_agents=load_agents, specific_agents=support_agents)
 
 world = scenario.make_world()
 world.episode_len = args.episode_len
@@ -115,18 +117,20 @@ for n in range(args.medoid_size):  # First group, just initialize with new polic
         metalearner.current_policy.parameters(), lr=args.lr)
     metalearner.optimizer = optimizer
     # Add the first batch to memory, can compute distance matrix on this
-    metalearner.train(args.k, update_counter)
+    metalearner.train(args.k, update_counter, save=True)
     # Maybe redundant, but make sure new entity type is introduced
     scenario.sample_task = True
 
 # Update distances
 metalearner.calculate_distances(iterations=[update_counter])
 
-metalearner.update_medoids(update_counter, k=6)
+metalearner.update_medoids(update_counter, k=args.num_medoids)
 
 update_counter += 1
 
-remaining_iterations = args.num_updates - args.medoid_size
+remaining_iterations = args.num_iters - args.medoid_size
+
+num_obs = int(args.k / 2)  # Try this for now
 
 for n in range(remaining_iterations):
     scenario.sample_task = True
@@ -134,19 +138,20 @@ for n in range(remaining_iterations):
     for policy in metalearner.medoid_policies:
         metalearner.current_policy = policy['policy']
         metalearner.optimizer = policy['optimizer']
-        _, r = metalearner.train(num_obs, update_counter)
+        _, r = metalearner.train(num_obs, update_counter, save=False)
         rewards.append(r)
-    max_reward_ix = rewards.argsort()[-1]
+    max_reward_ix = np.array(rewards).argsort()[-1]
     selected_policy = metalearner.medoid_policies[max_reward_ix]
     metalearner.current_policy = selected_policy['policy']
     metalearner.optimizer = selected_policy['optimizer']
-    metalearner.train(args.k - num_obs, update_counter)  # Do remaining updates
+    metalearner.train(args.k - num_obs, update_counter,
+                      save=True)  # Do remaining updates
 
     # Calculate distances if batch size is different
     if n % args.medoid_size == 0:
         # Update distances
         metalearner.calculate_distances(iterations=[update_counter])
-        metalearner.update_medoids(update_counter, k=6)
+        metalearner.update_medoids(update_counter, k=args.num_medoids)
         update_counter += 1
 
 # Now metalearner.medoid_policies should have the medoid policies #
@@ -172,6 +177,8 @@ for agent in eval_agents:
     env.discrete_action_input = True
     env.seed(args.seed)
 
+    metalearner.env = env
+
     if args.render:
         env.render()
 
@@ -193,14 +200,17 @@ for agent in eval_agents:
         policy = metalearner.medoid_policies[ix]
         metalearner.current_policy = policy['policy']
         metalearner.optimizer = policy['optimizer']
-        _, ep_reward = metalearner.sample(policy)
+        _, ep_reward = metalearner.sample(metalearner.current_policy)
         policy_rewards[ix].append(ep_reward)
 
     # Get max reward medoid policy
     max_reward_ix = np.array(policy_rewards).mean(axis=0).argsort()[-1]
     selected_policy = metalearner.medoid_policies[max_reward_ix]
     policy = selected_policy['policy']
-    optimizer = optim.Adam(policy.parameters(), lr=args.lr)
+    if args.replace_optimizer:
+        optimizer = optim.Adam(policy.parameters(), lr=args.lr)
+    else:
+        optimizer = selected_policy['optimizer']
 
     for n in range(args.num_eval_iters - args.k):  # 100? Number of updates, continue
         # After this fast adaptation stage, revert to VPG
