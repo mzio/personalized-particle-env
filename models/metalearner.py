@@ -85,7 +85,7 @@ class MetaLearner(object):
                       'policy': self.current_policy,
                       'kde': kde,
                       'reward': ep_reward,
-                      'optimizer': self.optimizer
+                      'optimizer': self.optimizer,
                       'update': iter_num}
             try:
                 self.memory[iter_num].append(update)  # could really be a list
@@ -132,12 +132,11 @@ class MetaLearner(object):
         samples = self.meta_samples[iteration]
 
         sample_divergences = []
-        for sample in samples:
-            sample_key = '-'.join(map(str, sample))
+        for sample_ix, sample in enumerate(samples):
             om = self.calculate_occupancy(kde_policy, policy, sample)
             sample_divergence = np.zeros(len(saved_policies))
             for n in range(len(saved_policies)):
-                saved_om = self.meta_occupancies[iteration][sample_key]
+                saved_om = self.meta_occupancies[iteration][n][sample_ix]
                 jsd = self.calculate_JSD(om.squeeze(), saved_om.squeeze())
                 sample_divergence[n] = jsd
 
@@ -151,11 +150,11 @@ class MetaLearner(object):
     def get_updated_policies(self, K, policy, trajectory, iteration,
                              sample_num=100):
         closest_ixs = self.calculate_KNN(
-            K, policy, trajectoy, iteration, sample_num)
+            K, policy, trajectory, iteration, sample_num)
         policies = []
         new_iteration = len(self.memory)
         updated_policies = self.memory[new_iteration]
-        for ix in range(len(updated_rewarpolicies)):
+        for ix in range(len(updated_policies)):
             if ix in closest_ixs:
                 policies.append(updated_policies[ix])
         return policies  # pick the one with the best reward?
@@ -189,7 +188,7 @@ class MetaLearner(object):
 
             sample_divergences = []
 
-            for sample in samples:
+            for sample_ix, sample in enumerate(samples):
                 probs_n = []
                 sample_divergence = np.zeros([num_policies, num_policies])
                 for ix in range(num_policies):
@@ -197,12 +196,19 @@ class MetaLearner(object):
                         kdes[ix], policies[ix], sample)
                     probs_n.append(occupancy_measure)
                     # Save occupancy measures for comparison later
-                    om_stat = {'-'.join(map(str, sample)): occupancy_measure}
+                    key = sample_ix
+
+                    # om_stat = {'-'.join(map(str, sample)): occupancy_measure}
 
                     try:
-                        self.meta_occupancies[ix].append(om_stat)
+                        self.meta_occupancies[i][ix][key] = occupancy_measure
                     except:
-                        self.meta_occupancies[ix] = [om_stat]
+                        pass
+                    try:
+                        self.meta_occupancies[i][ix] = {key: occupancy_measure}
+                    except:
+                        self.meta_occupancies[i] = {
+                            ix: {key: occupancy_measure}}
 
                 for a in range(num_policies):
                     for b in range(num_policies):
