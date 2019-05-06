@@ -123,7 +123,7 @@ for agent in support_agents:  # Train pre-trained models first
     scenario.sample_task = True  # Now change the entity type - doesn't actually matter
 
 # Model should have lists of trajectories and policies now, indexed by training iteration
-total_iters = np.array(range(args.num_iters)) + 1
+# total_iters = np.array(range(args.num_iters)) + 1
 # only get first and last updates?
 metalearner.calculate_distances(iterations=[1, args.num_iters])
 # Initially have these. Should we calculate divergences between all pretrained models?
@@ -256,8 +256,5 @@ with open(meta_results_fname, 'w') as f:
 
 # python meta_main.py --num_iters 10 --k 10 --seed 1 --load_agents 'agents-clustered-p' --num_eval_iters 10 --model 'Reinforce' --log_interval 1 --episode_len 100 --optimizer 'Adam' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-3 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-13 PersonalAgent-15 PersonalAgent-16 PersonalAgent-18 PersonalAgent-21 PersonalAgent-22' --eval_agents 'PersonalAgent-2 PersonalAgent-4 PersonalAgent-5 PersonalAgent-6 PersonalAgent-7 PersonalAgent-11 PersonalAgent-12 PersonalAgent-14 PersonalAgent-17 PersonalAgent-19 PersonalAgent-20 PersonalAgent-23'
 
-# python main.py --num_agents 10 --personalization 'variance' --load_agents 'agents_many_10-1' --seed 42 --specific_agents 'PersonalAgent-0' --model 'Reinforce' --inner_updates 10 --log_interval 1 --episode_len 1000 --num_episodes 1000 --save_results './results/results-r-1.csv' --save_model './trained_models/model-r-1.pt'
 
-# python main.py --num_episodes 100 --p 'cluster' --seed 1 --save_results './results/results_ppe_simple_reinforce_sgd_5-1.csv' --save_model './trained_models/model_ppe_simple_reinforce_sgd_5-1.pt' --load_agents 'agents-clustered' --specific_agents 'PersonalAgent-5' --model 'Reinforce' --inner_updates 1 --log_interval 1 --episode_len 100
 
-# python meta_train.py --num_episodes 100 --seed 1 --save_results './results/results_ppe-joint_reptile-0.csv' --save_model './trained_models/model_ppe-joint_reptile-0.pt' --load_agents 'agents-clustered-p' --specific_agents 'PersonalAgent-0 PersonalAgent-1 PersonalAgent-2 PersonalAgent-3 PersonalAgent-4 PersonalAgent-5 PersonalAgent-8 PersonalAgent-9 PersonalAgent-10 PersonalAgent-11 PersonalAgent-12 PersonalAgent-15' --model 'Reinforce' --inner_updates 10 --k 1 --log_interval 1 --episode_len 100 --optimizer 'Adam'

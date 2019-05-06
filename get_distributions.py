@@ -41,6 +41,8 @@ checkpoints = [0, 10, 20, 30, 40, 50]  # Multiply by 10 for actual episode
 
 
 def check_valid_model(model):
+    if '1_cp_' not in model:
+        return False
     if '_cp_' not in model:
         return False
     num = int(model.split('_cp_')[-1].split('.')[0])
@@ -53,10 +55,13 @@ def check_valid_model(model):
 trained_models = [join(fpath, f) for f in listdir(
     fpath) if (isfile(join(fpath, f))) and ('.pt' in f) and check_valid_model(f)]
 
+# print(trained_models)
 
 # Load state samplers
 with open(args.state_sampler, 'rb') as f:
     state_kdes = pickle.load(f)
+
+print('### Samplers loaded!')
 
 models = []
 
@@ -72,6 +77,7 @@ for ix in range(len(checkpoints)):
             agent_type = int(name.split('_')[-1].split('-')[0])
             rep = int(name.split('_')[-1].split('-')[1])
 
+            print('### Model {} loaded!'.format(name))
             policy = Reinforce(None, 2, 5)
             policy.load_state_dict(torch.load(model))
             # Calculate categorical action distributions
@@ -84,13 +90,15 @@ for ix in range(len(checkpoints)):
 
 pairwise_dists = []
 
+print('### Calculating pairwise divergences...')
+
 for m1 in models:
     for m2 in models:
         sym_kls = []
         kls = []
         for x in range(len(m1['state_p'])):  # get symmetrized KL
             sym_kl = (kl.kl_divergence(m1['state_p'][x], m2['state_p'][x]) +
-                      kl.kl_divergence(m2['state_p'][x], m1['state_p'][x]))
+                      kl.kl_divergence(m2['state_p'][x], m1['state_p'][x])) / 2.
             kl_ = kl.kl_divergence(m1['state_p'][x], m2['state_p'][x])
             sym_kls.append(sym_kl)
             kls.append(kl_)
@@ -102,9 +110,9 @@ for m1 in models:
                                'q': m2['name'],
                                'q_type': m2['type'],
                                'q_rep': m2['rep']})
-
-with open(args.save_results, 'wb') as f:
-    pickle.dump(pairwise_dists, file=f)
+        with open(args.save_results, 'wb') as f:
+            print('Saving file to {}...'.format(args.save_results))
+            pickle.dump(pairwise_dists, file=f)
 
 
 # python get_distributions.py --num_states 100 --trained_models './trained_models/'

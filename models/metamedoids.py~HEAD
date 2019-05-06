@@ -1,8 +1,8 @@
-# Implementation of Meta-Learner based on divergent trajectories
-# Relation to prototypical / matching networks applied to RL
-# Relation to MAML / Reptile shortest descent algorithms
+# Implementation of meta-medoids learning algorithm.
+# Builds on metalearner, but identifies medoids and computes based on these
 
 import numpy as np
+import random
 
 import torch
 import torch.nn as nn
@@ -14,9 +14,9 @@ from sklearn.model_selection import GridSearchCV
 from scipy.stats import entropy
 
 
-class MetaLearner(object):
+class MetaMedoids(object):
     def __init__(self, policy, obs_shape, action_shape, K=10, num_iters=100,
-                 initialize_size=5, look_back='all', lr=1e-2):
+                 num_medoids=6, medoid_size=10, lr=1e-2):
         self.algo = policy(0, obs_shape, action_shape)
         # Used for initializing new policies
         self.policy = policy
@@ -26,9 +26,10 @@ class MetaLearner(object):
         self.memory = {}
         self.K = K  # how few can we go?
         self.num_iters = num_iters  # how many training iters per episode
-        # Number of tasks to do regular policy updates with
-        self.initialize_size = initialize_size
-        self.look_back = look_back  # number of previous episodes to look back
+
+        self.num_medoids = num_medoids  # Number of medoids to find
+        self.medoid_size = medoid_size  # Number of points to calcualte medoids with
+
         self.episode = 0  # current episode
         self.KDEs = {}  # KDE for entirety of this update iteration
 
@@ -93,7 +94,7 @@ class MetaLearner(object):
                 self.memory[iter_num] = [update]
         else:
             trajectory = self.sample(policy)
-        return trajectory
+        return trajectory, ep_reward
 
     def update(self):
         """Update and find nearest neighbor from before to initialize at"""
@@ -136,9 +137,6 @@ class MetaLearner(object):
             om = self.calculate_occupancy(kde_policy, policy, sample)
             sample_divergence = np.zeros(len(saved_policies))
             for n in range(len(saved_policies)):
-                print('iter: {}'.format(iteration))
-                print('n: {}'.format(n))
-                print(self.meta_occupancies)
                 saved_om = self.meta_occupancies[iteration][n][sample_ix]
                 jsd = self.calculate_JSD(om.squeeze(), saved_om.squeeze())
                 sample_divergence[n] = jsd
@@ -179,9 +177,8 @@ class MetaLearner(object):
                 policies.append(p['policy'])
                 kdes.append(p['kde'])
 
-            print(trajectories)
             num_policies = len(policies)
-            
+
             kde_all = self.calculate_KDE(trajectories)
             samples = self.sample_kde(kde_all, 100)
 
@@ -199,30 +196,16 @@ class MetaLearner(object):
                     probs_n.append(occupancy_measure)
                     # Save occupancy measures for comparison later
                     key = sample_ix
-                    # om_stat = {'-'.join(map(str, sample)): occupancy_measure}
 
                     try:
                         self.meta_occupancies[i][ix][key] = occupancy_measure
                     except:
-<<<<<<< HEAD
                         try:
                             self.meta_occupancies[i][ix] = {
                                 key: occupancy_measure}
                         except:
                             self.meta_occupancies[i] = {
                                 ix: {key: occupancy_measure}}
-=======
-                        pass
-                    try:
-                        self.meta_occupancies[i][ix][key] = occupancy_measure
-                    except:
-                        pass
-                    try:
-                        self.meta_occupancies[i][ix] = {key: occupancy_measure}
-                    except:
-                        self.meta_occupancies[i] = {
-                            ix: {key: occupancy_measure}}
->>>>>>> fc34aba98d7953d7d294a8f215b00d9acd1411db
 
                 for a in range(num_policies):
                     for b in range(num_policies):
@@ -235,6 +218,65 @@ class MetaLearner(object):
             divergence = np.sum(sample_divergences, axis=0)  # or sum?
             self.meta_divergences[i] = divergence
 
-    def update_nearest_neighbors(self, K, iteration):
-        """Update adjacency list of K nearest neighbors, given prior policies"""
+    def update_medoids(self, iteration, k=6):
+        """Update medoids"""
         divergences = self.meta_divergences[iteration]
+        _, medoid_ix = self.calculate_medoids(divergences, k)
+        medoid_policies = []
+        for i, policy in enumerate(self.memory[iteration]):
+            if i in medoid_ix:
+                medoid_policies.append(policy)
+        self.medoid_policies = medoid_policies
+        # Save medoid policies for next round
+        self.memory[iteration + 1] = medoid_policies
+        return medoid_policies
+
+    def calculate_medoids(self, distances, k=6):
+        """
+        Method to calculate medoids given distance matrix, taken from
+        https://github.com/salspaugh/machine_learning/blob/master/clustering/kmedoids.py
+        """
+        m = distances.shape[0]  # number of points
+
+        # Pick k random medoids.
+        curr_medoids = np.array([-1] * k)
+        while not len(np.unique(curr_medoids)) == k:
+            curr_medoids = np.array([random.randint(0, m - 1)
+                                     for _ in range(k)])
+        # Doesn't matter what we initialize these to.
+        old_medoids = np.array([-1] * k)
+        new_medoids = np.array([-1] * k)
+
+        # Until the medoids stop updating, do the following:
+        while not ((old_medoids == curr_medoids).all()):
+            # Assign each point to cluster with closest medoid.
+            clusters = assign_points_to_clusters(curr_medoids, distances)
+
+            # Update cluster medoids to be lowest cost point.
+            for curr_medoid in curr_medoids:
+                cluster = np.where(clusters == curr_medoid)[0]
+                new_medoids[curr_medoids == curr_medoid] = compute_new_medoid(
+                    cluster, distances)
+
+            old_medoids[:] = curr_medoids[:]
+            curr_medoids[:] = new_medoids[:]
+
+        return clusters, curr_medoids
+
+    def assign_points_to_clusters(self, medoids, distances):
+        distances_to_medoids = distances[:, medoids]
+        clusters = medoids[np.argmin(distances_to_medoids, axis=1)]
+        clusters[medoids] = medoids
+        return clusters
+
+    def compute_new_medoid(self, cluster, distances):
+        mask = np.ones(distances.shape)
+        mask[np.ix_(cluster, cluster)] = 0.
+        cluster_distances = np.ma.masked_array(
+            data=distances, mask=mask, fill_value=10e9)
+        costs = cluster_distances.sum(axis=1)
+        return costs.argmin(axis=0, fill_value=10e9)
+
+        # def update_nearest_neighbors(self, K, iteration):
+        #     """Update adjacency list of K nearest neighbors, given prior policies"""
+        #     divergences = self.meta_divergences[iteration]

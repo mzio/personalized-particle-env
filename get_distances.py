@@ -48,6 +48,10 @@ def get_kde(states, bw=np.logspace(-1, 1, 20), cv=5):
     return kde
 
 
+<<<<<<< HEAD
+
+=======
+>>>>>>> a519a85a2b9a1cec0bb70108595832b60afb4729
 def sample_kde(kde, num_samples=1000, seed=0):
     sample = kde.sample(num_samples, random_state=seed)
     return sample
@@ -74,13 +78,13 @@ model_cp = {}
 
 for cp in checkpoints:
     model_cp[cp] = [join(fpath, f) for f in listdir(
-        fpath) if (isfile(join(fpath, f))) and ('.pt' in f) and ('1_cp_{}.pt'.format(cp) in f)]
+        fpath) if (isfile(join(fpath, f))) and ('.pt' in f) and ('4_cp_{}.pt'.format(cp) in f)]
 
 model_checkpoints = {}
 
 for c in checkpoints:
     for cp in model_cp[c]:
-        entity = cp.split('model_ppe_simple_reinforce_')[-1].split('-')[0]
+        entity = cp.split('model_ppe_simple_reinforce_c1_')[-1].split('-')[0]
         try:
             model_checkpoints[int(entity)][c] = cp
         except:
@@ -89,7 +93,7 @@ for c in checkpoints:
 print('Checkpoints loaded!')
 
 # Get trajectories
-with open('states.p', 'rb') as f:
+with open('states-1.p', 'rb') as f:
     loaded_trajectories = pickle.load(f)
 
 print('Trajectories loaded!')
@@ -101,10 +105,10 @@ for cp in checkpoints:
     # Go through each model type
     trajectories = []
     policies = []
-    kde_n = []  # Collect KDEs for each type, but unsure if necessary
+    # kde_n = []  # Collect KDEs for each type, but unsure if necessary
     for t in range(args.num_models):
         trajectories.extend(loaded_trajectories[t][cp])
-        kde_n.append(get_kde(loaded_trajectories[t][cp]))
+        # kde_n.append(get_kde(loaded_trajectories[t][cp]))
         policy = Reinforce(None, 2, 5)
         policy.load_state_dict(torch.load(model_checkpoints[t][cp]))
         policies.append(policy)
@@ -123,8 +127,8 @@ for cp in checkpoints:
             _, probs = policies[t].action(
                 sample, distribution=True)  # 4d vector
             # print(probs.detach())
-            state_freq = np.exp(kde_n[t].score(sample.reshape(1, -1)))
-            probs_n.append(probs.detach() * state_freq)
+            # state_freq = np.exp(kde_n[t].score(sample.reshape(1, -1)))
+            probs_n.append(probs.detach())  # * state_freq)
         # Compute pairwise KL divergence
         # pairwise JS divergence
         print('Computing JS divergence...')
@@ -140,8 +144,8 @@ for cp in checkpoints:
     checkpoint_divergences[cp] = divergence
     # print(divergence)
 
-with open('distances_om-1.p', 'wb') as f:
+with open('distances_act-c1-4.p', 'wb') as f:
     pickle.dump(checkpoint_divergences, f)
 
-# python get_distances.py --num_states 100 --save_results 'distances.p'  --trained_models './trained_models/simple_reinforce_cp/' --num_models 24
+# python get_distances.py --num_states 100 --save_results 'distances.p'  --trained_models './trained_models/simple_reinforce_cp-1/' --num_models 24
 

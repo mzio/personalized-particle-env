@@ -12,6 +12,7 @@ from particles.environment import PersonalAgentEnv
 
 from models.reinforce import Reinforce
 from models.actor_critic import ActorCritic
+from models.bandit import ThompsonSampler
 
 parser = argparse.ArgumentParser(description=None)
 
@@ -47,12 +48,15 @@ parser.add_argument('--log_interval', default=1, type=int,
                     help='Logging rate')
 parser.add_argument('--save_results', default='./results/results.csv')
 parser.add_argument('--save_model', default='./trained_models/model.pt')
+parser.add_argument('--checkpoint', default=100)
 args = parser.parse_args()
 
 if args.model == 'ActorCritic':
     model = ActorCritic
 elif args.model == 'Reinforce':
     model = Reinforce
+elif args.model == 'ThompsonSampler':
+    model = ThompsonSampler
 else:
     raise NotImplementedError
 
@@ -87,7 +91,7 @@ if args.render:
 policies = [model(i, env.observation_space[i].shape[0],
                   env.action_space[0].n) for i in range(env.n)]
 
-optimizer = optim.Adam(policies[0].parameters(), lr=args.lr)
+optimizer = optim.SGD(policies[0].parameters(), lr=args.lr)
 
 
 obs_n = env.reset()
@@ -147,6 +151,8 @@ for n in range(num_episodes):
     running_reward = 0.05 * ep_reward + (1 - 0.05) * running_reward
     policy.update(optimizer, args.inner_updates)
     env.reset()
+    if n % 10 == 0:  # Only save checkpoints every 10 updates
+        torch.save(policies[0].state_dict(), args.save_model.split('.pt')[0] + '_cp_{}.pt'.format(n)) 
 
 
 # Save model and results

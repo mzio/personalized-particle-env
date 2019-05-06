@@ -77,6 +77,7 @@ assert args.load_agents != ''
 
 load_agents = './particles/configs/' + args.load_agents + '.json'
 support_agents = args.specific_agents.split(' ')
+eval_agents = args.eval_agents.split(' ')
 
 if args.model == 'ActorCritic':
     model = ActorCritic
@@ -109,6 +110,10 @@ metalearner.env = env
 # META-TRAINING #
 update_counter = 1
 
+if args.debug:
+    print('Meta-training...')
+    print('Load first batch')
+
 for n in range(args.medoid_size):  # First group, just initialize with new policies
     scenario.sample_task = True
     metalearner.current_policy = metalearner.policy(
@@ -118,13 +123,22 @@ for n in range(args.medoid_size):  # First group, just initialize with new polic
     metalearner.optimizer = optimizer
     # Add the first batch to memory, can compute distance matrix on this
     metalearner.train(args.k, update_counter, save=True)
+    if args.debug:
+        print('Updated learner with batch 1')
     # Maybe redundant, but make sure new entity type is introduced
     scenario.sample_task = True
+
 
 # Update distances
 metalearner.calculate_distances(iterations=[update_counter])
 
+if args.debug:
+    print('Initial distances calculated!')
+
 metalearner.update_medoids(update_counter, k=args.num_medoids)
+
+if args.debug:
+    print('Initial medoids calculated!')
 
 update_counter += 1
 
@@ -135,28 +149,54 @@ num_obs = int(args.k / 2)  # Try this for now
 for n in range(remaining_iterations):
     scenario.sample_task = True
     rewards = []
-    for policy in metalearner.medoid_policies:
+    if args.debug:
+        print('Number of medoids: {}'.format(len(metalearner.medoid_policies)))
+    for mix, policy in enumerate(metalearner.medoid_policies):
+        if args.debug:
+            print('Number of medoids: {}'.format(
+                len(metalearner.medoid_policies)))
         metalearner.current_policy = policy['policy']
         metalearner.optimizer = policy['optimizer']
+        if args.debug:
+            print('Metalearner policy {} loaded'.format(mix))
         _, r = metalearner.train(num_obs, update_counter, save=False)
+        if args.debug:
+            print('Number of medoids after train: {}'.format(
+                len(metalearner.medoid_policies)))
+        if args.debug:
+            print('Initial trajectory completed for task {} and policy {}'.format(n, mix))
         rewards.append(r)
     max_reward_ix = np.array(rewards).argsort()[-1]
     selected_policy = metalearner.medoid_policies[max_reward_ix]
+    if args.debug:
+        print('Best medoid policy identified!')
     metalearner.current_policy = selected_policy['policy']
     metalearner.optimizer = selected_policy['optimizer']
+    if args.debug:
+        print('Running medoid policy on new entity...')
     metalearner.train(args.k - num_obs, update_counter,
                       save=True)  # Do remaining updates
 
+    if args.debug:
+        print('Metalearner updated on batch {}'.format(update_counter))
     # Calculate distances if batch size is different
-    if n % args.medoid_size == 0:
+    if (n % args.medoid_size == 0) and (n != 0):
+        if args.debug:
+            print('Updating medoids...')
         # Update distances
         metalearner.calculate_distances(iterations=[update_counter])
+        if args.debug:
+            print('Distances calculated!')
         metalearner.update_medoids(update_counter, k=args.num_medoids)
+        if args.debug:
+            print('Medoids updated!')
         update_counter += 1
 
 # Now metalearner.medoid_policies should have the medoid policies #
 
 # EVALUATION #
+if args.debug:
+    print('Evaluating meta-learner...')
 eval_agents = args.eval_agents.split(' ')
 
 # meta_info = [['Timestep', 'Episode', 'Episode_Reward', 'Eval_Agent']]
@@ -164,6 +204,8 @@ info = [['Timestep', 'Episode', 'State_x_pos', 'State_y_pos',
          'Action', 'Relative Reward', 'Episode_Reward', 'Eval_Agent']]
 
 for agent in eval_agents:
+    if args.debug:
+        print('Evaluating on agent: {}'.format(agent))
     scenario = scenarios.load('simple.py').Scenario(
         kind=args.personalization, num_agents=args.num_agents, seed=args.seed,
         load_agents=load_agents, specific_agents=agent)
@@ -176,6 +218,7 @@ for agent in eval_agents:
                            done_callback=scenario.done, shared_viewer=True)
     env.discrete_action_input = True
     env.seed(args.seed)
+    metalearner.env = env
 
     metalearner.env = env
 
@@ -222,16 +265,16 @@ for agent in eval_agents:
                 act_n.append(policy.action(obs_n[0]))
                 # step environment
                 obs_n, reward_n, done_n, _ = env.step(act_n)
-                if args.debug:
-                    print('OBSERVATIONS: {}'.format(obs_n))
+                # if args.debug:
+                #    print('OBSERVATIONS: {}'.format(obs_n))
                 # render all agent views
                 if args.render:
                     env.render()
                 # display rewards
-                if args.debug:
-                    for agent in env.world.agents:
-                        print(agent.name + " reward: %0.3f" %
-                              env._get_reward(agent))
+                # if args.debug:
+                  #   for agent in env.world.agents:
+                    #     print(agent.name + " reward: %0.3f" %
+                    #        env._get_reward(agent))
                 policy.rewards.append(reward_n[0])
                 ep_reward += reward_n[0]
                 t += 1

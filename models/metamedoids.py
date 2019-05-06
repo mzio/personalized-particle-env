@@ -45,6 +45,8 @@ class MetaMedoids(object):
 
         self.medoid_policies = None
 
+        self.medoid_policies = None
+
     def update_meta_property(self, property, item, iteration):
         """Due to indexing, helper method to help update meta properties"""
         try:
@@ -71,7 +73,7 @@ class MetaMedoids(object):
         policy.update(optimizer, K)
         # self.current_policy.update(self.optimizer, self.K)
 
-    def train(self, K, iter_num, save):
+    def train(self, K, iter_num, save=True):
         """
         Run k updates (K or 1), adapt, and run another, saving this trajectory and the adapted model
         :iter_num: the current iteration (used for indexing)
@@ -99,10 +101,6 @@ class MetaMedoids(object):
         else:
             trajectory = self.sample(policy)
         return trajectory, ep_reward
-
-    def update(self):
-        """Update and find nearest neighbor from before to initialize at"""
-        new_trajectory = self.train(policy)
 
     def calculate_KDE(self, states, bw=np.logspace(-1, 1, 20), cv=5):
         """Given state trajectories, calculate KDE"""

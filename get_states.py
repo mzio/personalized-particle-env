@@ -38,6 +38,8 @@ parser.add_argument('--trained_models', default='./trained_models/',
                     help='Trained model name for visualization')
 parser.add_argument('--num_states', default=5,
                     help='Number of states to collect')
+parser.add_argument('--save_results', default='states.csv',
+                    help='Store states')
 args = parser.parse_args()
 
 fpath = args.trained_models
@@ -51,15 +53,17 @@ load_agents = None
 if args.load_agents != '':
     load_agents = './particles/configs/' + args.load_agents + '.json'
 
-states = []
+states = [['State_x_pos', 'State_y_pos', 'Model']]
 
 mod = int(args.episode_len / args.num_states)
 
 for model in trained_models:
-    specific_agents = 'PersonalAgent-{}'.format(model.split('-')[0][-1])
+    print('Collect states for {}...'.format(model))
+    num = int(model.split('-')[0][-1])
+    specific_agents = 'PersonalAgent-{}'.format(num)
 
     scenario = scenarios.load(args.scenario).Scenario(
-        kind=args.personalization, num_agents=args.num_agents, seed=args.seed,
+        kind=args.personalization, num_agents=1, seed=num,
         load_agents=load_agents, save_agents=None,
         specific_agents=specific_agents)
     # create world
@@ -92,13 +96,20 @@ for model in trained_models:
         obs_n, reward_n, done_n, _ = env.step(act_n)
 
         if t % mod == 0:
-            states.append(obs_n[0])
+            state = list(obs_n[0])
+            state.append(num)
+            states.append(state)
 
         t += 1
 
         if done_n[i] is True:
             break
 
+with open(args.save_results, 'w') as f:
+    writer = csv.writer(f)
+    writer.writerows(states)
+
+# python get_states.py --scenario simple.py --p 'none' --seed 0 --trained_models './trained_models/' --load_agents 'agents_many_10-1'
+
 print(states)
 
-# # python evaluate.py --scenario simple.py --p 'none' --seed 0 --trained_models './trained_models/' --load_agents 'agents_many_10-1'
